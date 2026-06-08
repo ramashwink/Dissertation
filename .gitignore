@@ -1,0 +1,27 @@
+# PX4 / Ardupilot build outputs (gigabytes)
+tools/PX4-Autopilot/build/
+tools/ardupilot/build/
+tools/Micro-XRCE-DDS-Agent/build/
+
+# ROS 2 build artefacts
+ros_ws/build/
+ros_ws/install/
+ros_ws/log/
+
+# Snap
+snap/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Large pcap files (add to git LFS separately if needed)
+logs/*.pcap
+
+# OS junk
+.DS_Store
+Thumbs.db
+tools/
+ros_ws/

@@ -1,0 +1,28 @@
+=== Attack 2: Replay Attack Results ===
+Date: 2026-05-26
+Dissertation: COMSM0117 - Ashwin Kotharamath
+
+Attack vector: VISION_POSITION_ESTIMATE via MAVLink UDP (unauthenticated)
+Method: Replay of captured position data from previous session
+
+Results:
+  Frozen position injected : x=15.50m, y=9.30m, z=-2.0m
+  Timestamp age            : ~1,779,803,625 seconds (approx 56 years stale)
+  Messages replayed        : 100
+  PX4 response             : ACCEPTED - no rejection observed
+  Timestamp validation     : NONE - any timestamp accepted regardless of age
+
+Key finding:
+  PX4 SITL with MAVLink v2 performs zero timestamp freshness validation
+  on VISION_POSITION_ESTIMATE messages. An attacker can replay position
+  data of arbitrary age and PX4 EKF2 will process it as valid input.
+  This enables position freeze attacks where the drone believes it is
+  stationary at an attacker-chosen location indefinitely.
+
+Threat taxonomy mapping:
+  Positioning -> Replay attack (confirmed exploitable)
+
+Recommended mitigation:
+  1. Timestamp freshness window (reject messages >500ms old)
+  2. MAVLink message signing (MAVLink 2.0 feature, disabled by default)
+  3. Sequence number validation with replay window
