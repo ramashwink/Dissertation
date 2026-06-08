@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>swarm_discovery</name>
+  <version>0.1.0</version>
+  <description>Dynamic swarm discovery stack for When-Drones-Go-Blind</description>
+  <maintainer email="se25272@bristol.ac.uk">Ashwin Kotharamath</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>swarm_msgs</depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

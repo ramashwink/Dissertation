@@ -1,0 +1,7 @@
+std_msgs/Header header
+string  drone_ns
+float64 spawn_x
+float64 spawn_y
+float64 spawn_z
+string  drone_type
+bool    is_armed
