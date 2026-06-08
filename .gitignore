@@ -34,3 +34,10 @@ ros_ws/
 !ros_ws/px4_ros_ws/src/swarm_msgs/**
 !ros_ws/px4_ros_ws/src/swarm_discovery/
 !ros_ws/px4_ros_ws/src/swarm_discovery/**
+
+# ROS 2 build artefacts
+!ros_ws/px4_ros_ws/
+ros_ws/px4_ros_ws/build/
+ros_ws/px4_ros_ws/install/
+ros_ws/px4_ros_ws/log/
+ros_ws/px4_ros_ws/src/px4_msgs/
