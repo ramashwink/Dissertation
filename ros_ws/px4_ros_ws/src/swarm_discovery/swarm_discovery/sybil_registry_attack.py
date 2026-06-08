@@ -21,10 +21,12 @@ def ghost_config(n):
     configs = []
     for i in range(n):
         angle = 2 * np.pi * i / n
+        # Spawn already spread out so all ghosts visible immediately
+        spawn_pos = np.array([4.0 * np.cos(angle), 1.0 + 4.0 * np.sin(angle), 1.0])
         configs.append({
             "drone_ns": f"ghost_{i+1}",
-            "spawn":    np.array([0.0, 1.0, 0.0]),
-            "fake_pos": np.array([4.0 * np.cos(angle), 1.0 + 4.0 * np.sin(angle), 2.0]),
+            "spawn":    spawn_pos,
+            "fake_pos": spawn_pos * 1.5,
         })
     return configs
 

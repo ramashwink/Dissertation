@@ -5,7 +5,7 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from swarm_msgs.msg import SwarmMember, SwarmRegistry as SwarmRegistryMsg
 
-MEMBER_TIMEOUT_SEC = 5.0
+MEMBER_TIMEOUT_SEC = 10.0
 REGISTRY_HZ        = 2.0
 HEARTBEAT_HZ       = 2.0   # expected rate — suspects publish >3x this
 

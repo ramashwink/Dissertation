@@ -22,6 +22,7 @@ setup(
             'swarm_registry = swarm_discovery.swarm_registry:main',
             'coop_loc_dynamic = swarm_discovery.cooperative_localisation_dynamic:main',
             'sybil_registry_attack = swarm_discovery.sybil_registry_attack:main',
+            'swarm_viz = swarm_discovery.swarm_viz:main',
         ],
     },
 )
