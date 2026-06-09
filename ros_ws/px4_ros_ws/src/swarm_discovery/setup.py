@@ -28,6 +28,8 @@ setup(
             'replay_attack            = swarm_discovery.replay_attack:main',
             'wormhole_attack          = swarm_discovery.wormhole_attack:main',
             'swarm_viz                = swarm_discovery.swarm_viz:main',
+            'coop_loc_ekf             = swarm_discovery.cooperative_localisation_ekf:main',
+            'ekf_attack_logger        = swarm_discovery.ekf_attack_logger:main',
         ],
     },
 )
