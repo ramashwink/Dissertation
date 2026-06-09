@@ -5,6 +5,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PointStamped
 from swarm_msgs.msg import SwarmMember
 
 NUM_GHOSTS    = 3
