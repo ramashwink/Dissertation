@@ -39,7 +39,7 @@ from geometry_msgs.msg import PoseStamped, PointStamped
 
 
 # ----- Configuration -----
-DRONES = ["px4_1", "px4_2", "px4_3"]
+DRONES = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 
 RANGE_SIGMA   = 0.05      # metres  (5 cm; typical short-range LiDAR)
 BEARING_SIGMA = 0.0087    # radians (~0.5 degrees)

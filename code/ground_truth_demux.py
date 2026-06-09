@@ -33,6 +33,8 @@ DRONE_MAP = {
     "x500_1": "px4_1",
     "x500_2": "px4_2",
     "x500_3": "px4_3",
+    "x500_4": "px4_4",
+    "x500_5": "px4_5",
 }
 GZ_POSE_TOPIC = "/world/default/pose/info"
 

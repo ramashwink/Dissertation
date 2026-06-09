@@ -10,8 +10,8 @@ from swarm_msgs.msg import SwarmMember
 
 NUM_GHOSTS    = 3
 EVIL_DRONE    = "px4_2"
-HONEST_DRONES = ["px4_1", "px4_3"]
-ALL_DRONES    = ["px4_1", "px4_2", "px4_3"]
+HONEST_DRONES = ["px4_1", "px4_3", "px4_4"]
+ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 HEARTBEAT_HZ  = 2.0
 PUBLISH_HZ    = 10.0
 ATTACK_SEC    = 90.0
