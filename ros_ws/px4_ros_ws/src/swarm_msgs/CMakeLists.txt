@@ -8,6 +8,8 @@ find_package(std_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SwarmMember.msg"
   "msg/SwarmRegistry.msg"
+  "srv/RegisterDrone.srv"
+  "srv/Keepalive.srv"
   DEPENDENCIES std_msgs
 )
 

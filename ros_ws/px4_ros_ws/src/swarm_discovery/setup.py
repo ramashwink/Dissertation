@@ -18,11 +18,16 @@ setup(
     license='MIT',
     entry_points={
         'console_scripts': [
-            'swarm_heartbeat = swarm_discovery.swarm_heartbeat:main',
-            'swarm_registry = swarm_discovery.swarm_registry:main',
-            'coop_loc_dynamic = swarm_discovery.cooperative_localisation_dynamic:main',
-            'sybil_registry_attack = swarm_discovery.sybil_registry_attack:main',
-            'swarm_viz = swarm_discovery.swarm_viz:main',
+            'swarm_heartbeat          = swarm_discovery.swarm_heartbeat:main',
+            'swarm_registry           = swarm_discovery.swarm_registry:main',
+            'swarm_registry_service   = swarm_discovery.swarm_registry_service:main',
+            'swarm_client             = swarm_discovery.swarm_client:main',
+            'coop_loc_dynamic         = swarm_discovery.cooperative_localisation_dynamic:main',
+            'sybil_registry_attack    = swarm_discovery.sybil_registry_attack:main',
+            'sybil_service_attack     = swarm_discovery.sybil_service_attack:main',
+            'replay_attack            = swarm_discovery.replay_attack:main',
+            'wormhole_attack          = swarm_discovery.wormhole_attack:main',
+            'swarm_viz                = swarm_discovery.swarm_viz:main',
         ],
     },
 )

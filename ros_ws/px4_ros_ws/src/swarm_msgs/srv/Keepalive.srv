@@ -1,0 +1,3 @@
+string drone_ns
+---
+bool acknowledged
