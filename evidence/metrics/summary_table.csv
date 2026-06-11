@@ -7,7 +7,7 @@ EKF (baseline),baseline,,,,
 EKF (baseline),sybil,,,,
 EKF (baseline),replay,,,,
 EKF (baseline),wormhole,,,,
-WLS + Huber,baseline,5.9750,8.7804,6.1784,2.503
+WLS + Huber,baseline,3.4089,3.7099,3.4113,2.042
 WLS + Huber,sybil,,,,
 WLS + Huber,replay,,,,
 WLS + Huber,wormhole,,,,
