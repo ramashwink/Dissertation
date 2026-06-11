@@ -1,170 +1,261 @@
 # When Drones Go Blind
-### Security Analysis of Cooperative LiDAR-Based Localisation for Indoor GPS-Denied Drone Swarms
+### Security Analysis of Cooperative Localisation in GPS-Denied UAV Swarms
 
-> *A single rogue insider drone can corrupt every other drone's view of where it is — and there is currently no standard defence.*
-
-**MSc Cyber Security & Infrastructure Security · COMSM0117**  
-University of Bristol · Dissertation 2025–2026  
-Supervisor: Dr Joe Gardiner · Co-supervisor: Dr Alma Oracevic  
+**MSc Cyber Security & Infrastructure Security — COMSM0117**
+University of Bristol · Bristol Cyber Security Group
+Ashwin Kotharamath · Registration 2678113 · se25272@bristol.ac.uk
+Supervisors: Dr Joe Gardiner · Dr Alma Oracevic
+Submission: 4 September 2026
 
 ---
 
 ## Overview
 
-This repository contains the full research testbed for an MSc dissertation investigating **insider threat attacks on cooperative LiDAR-based localisation** in GPS-denied drone swarms.
+This repository contains the full implementation, attack suite, mitigation algorithms, and analysis pipeline for an empirical security study of cooperative swarm localisation in GPS-denied environments.
 
-The core threat model: an *evil drone* — a legitimate swarm member that has been compromised — can manipulate its reported position, inject ghost drones, replay stale measurements, or tunnel false data across the swarm via wormhole attacks. The swarm trusts it implicitly.
+A drone swarm navigating indoors without GPS must share LiDAR range measurements with its neighbours to estimate its own position. This is a **trust-based system** — a single rogue insider can corrupt every other drone's view of where it is. This project asks: *how bad can it get, and what can be done about it?*
 
-**Research Questions**
-1. What are the primary security vulnerabilities in cooperative LiDAR-based localisation algorithms in GPS-denied swarm environments?
-2. What are the trade-offs between security, positioning accuracy, communication efficiency, and computational cost when mitigating those vulnerabilities?
+---
+
+## Research Questions
+
+**RQ1** — What are the primary security vulnerabilities in cooperative localisation algorithms used in GPS-denied drone swarm environments?
+
+**RQ2** — What are the fundamental trade-offs between security, positioning accuracy, communication efficiency, and computational cost when mitigating those vulnerabilities?
 
 ---
 
 ## Repository Structure
 
 ```
-.
-├── code/
-│   ├── cooperative_localisation.py   # WLS cooperative localisation node (Step 3)
-│   ├── ground_truth_demux.py         # gz-transport ground truth publisher (Step 1)
-│   ├── inter_drone_ranging.py        # LiDAR noise model + range publisher (Step 2)
-│   ├── px4_offboard_hover.py         # Offboard hover controller
-│   ├── px4_position_listener.py      # EKF2 position subscriber
-│   ├── px4_spoof_position.py         # EKF2-layer position spoof (insider attack)
-│   ├── sybil_ghost_attack.py         # Sybil / ghost drone injection
-│   ├── replay_attack.py              # Replay attack on range measurements
-│   ├── capture_sybil.py              # pcap capture of Sybil traffic
-│   ├── record_baseline.py            # Nominal swarm baseline recorder
-│   ├── attack_test.py                # Attack harness / runner
-│   └── analyse_attack.py             # Post-hoc log analysis
-├── evidence/
-│   └── attack_evidence.png           # Visual evidence of attack outcomes
-├── logs/
-│   ├── attack2_results.txt           # Attack experiment results
-│   ├── attack_logs/                  # Per-run logs
-│   └── sybil_evidence.pcap           # Wireshark capture of Sybil traffic
+Dissertation/
+├── ros_ws/px4_ros_ws/
+│   └── src/
+│       ├── swarm_msgs/                    # Custom ROS 2 message types
+│       │   ├── msg/SwarmMember.msg
+│       │   ├── msg/SwarmRegistry.msg
+│       │   ├── srv/RegisterDrone.srv
+│       │   └── srv/Keepalive.srv
+│       └── swarm_discovery/
+│           └── swarm_discovery/
+│               ├── ground_truth_demux.py          # gz-transport → ROS 2 GT
+│               ├── inter_drone_ranging.py         # Simulated LiDAR ranging
+│               ├── swarm_registry.py              # Design A: topic-based
+│               ├── swarm_registry_service.py      # Design B: allowlist
+│               ├── swarm_heartbeat.py
+│               ├── swarm_client.py
+│               ├── cooperative_localisation_dynamic.py   # WLS baseline
+│               ├── cooperative_localisation_ekf.py       # EKF baseline
+│               ├── coop_loc_wls_huber.py          # WLS + Huber (approach 3)
+│               ├── coop_loc_wls_tukey.py          # WLS + Tukey (approach 4)
+│               ├── coop_loc_ransac.py             # RANSAC (approach 5)
+│               ├── coop_loc_ekf_chi2_huber.py     # EKF + χ² + Huber (approach 6)
+│               ├── coop_loc_logger.py             # External CSV logger for WLS/EKF
+│               ├── sybil_registry_attack.py       # Sybil attack
+│               ├── sybil_service_attack.py        # Sybil against Design B
+│               ├── replay_attack.py               # Replay attack
+│               ├── wormhole_attack.py             # Wormhole attack
+│               ├── ekf_attack_logger.py           # WLS vs EKF comparison logger
+│               └── swarm_viz.py                   # RViz2 + Gazebo visualisation
 ├── scripts/
-│   └── start_lab.sh                  # Full swarm bring-up script
-├── ros_ws/
-│   └── px4_ros_ws/                   # ROS 2 workspace (px4_msgs, custom nodes)
-└── tools/
-    ├── PX4-Autopilot/                # PX4 SITL (built from source)
-    ├── Micro-XRCE-DDS-Agent/         # DDS bridge (built from source)
-    └── ardupilot/                    # ArduPilot reference
+│   ├── start_swarm.sh                    # Launch 5-drone PX4 SITL
+│   ├── launch_wls.sh                     # WLS full stack
+│   ├── launch_ekf.sh                     # EKF full stack
+│   ├── launch_mitigation.sh              # Any mitigation approach
+│   ├── launch_stack_service.sh           # Design B (allowlist registry)
+│   ├── run_experiment.sh                 # Single experiment runner
+│   └── run_all_experiments.sh            # Full 6×4 matrix runner
+├── analyse_dissertation.py               # Main analysis + figure generator
+├── analyse_all_approaches.py             # Per-approach analyser
+├── extract_ground_truth.py               # Gazebo GT → CSV (x500_N → px4_N)
+└── evidence/
+    ├── metrics/                          # Per-drone per-approach CSV logs
+    ├── gt/                               # Ground truth CSVs
+    └── figures/dissertation/             # Generated dissertation figures
 ```
 
 ---
 
-## Testbed Stack
+## Branches
 
-| Layer | Technology |
+| Branch | Content |
 |---|---|
-| Flight controller | PX4 SITL (`gz_x500`, autostart 4001) |
-| Simulator | Gazebo Harmonic |
-| Middleware | ROS 2 Humble + Micro XRCE-DDS Agent |
-| Ground truth | `gz-transport` Python bindings (bypasses `ros_gz_bridge`) |
-| Cooperative localisation | WLS trilateration via `scipy.optimize.least_squares` |
-| GCS | QGroundControl (Windows host → WSL2 via UDP) |
-| Platform | Ubuntu 22.04 LTS in WSL2 on Windows 11 |
-
-**Swarm configuration:** 3 drones, namespaces `px4_1/px4_2/px4_3`, MAVLink system IDs 2/3/4, spawned at `(0,0,0)`, `(0,1,0)`, `(0,2,0)`.
+| `main` | Stable baseline — WLS cooperative localisation, 3-drone testbed |
+| `attack-experiments` | Sybil, Replay, Wormhole attack validation on 3 drones |
+| `five-drone-experiments` | 5-drone testbed, WLS + EKF baseline comparison |
+| `mitigation-experiments` | **Current** — 6 localisation approaches + full attack/mitigation matrix |
 
 ---
 
-## Cooperative Localisation Stack
+## Simulation Stack
 
-Built in three steps, each validated before proceeding:
-
-**Step 1 — Ground truth** (`ground_truth_demux.py`)  
-Publishes per-drone poses at 50 Hz on `/sim/ground_truth/px4_N/pose` via `gz-transport` Python bindings. Uses direct gz-transport to avoid the silent entity-name stripping bug in `ros_gz_bridge`.
-
-**Step 2 — Inter-drone ranging** (`inter_drone_ranging.py`)  
-Simulates LiDAR-derived relative position vectors with noise (σ_range = 0.05 m, σ_bearing = 0.0087 rad), publishing at 25 Hz on `/px4_N/coop/range_to/px4_M`.
-
-**Step 3 — Cooperative localisation** (`cooperative_localisation.py`)  
-WLS solver using full 3D relative-vector residuals (6 residuals vs 3 unknowns), resolving the rank deficiency of range-only trilateration with collinear anchors. Warm-started from previous estimate (soft temporal prior). Based on Patwari et al., IEEE SPM 2005.
-
----
-
-## Attack Experiments
-
-### EKF2 Position Spoof (demonstrated)
-Injecting false `vehicle_visual_odometry` messages causes the target drone to accelerate to **64 m/s** — worst-case single-source position fusion failure under an insider attack.
-
-### Sybil / Ghost Drone Injection (`sybil_ghost_attack.py`)
-Evil drone publishes fabricated neighbour positions on the cooperative localisation topics, corrupting the WLS estimates of honest drones.
-
-### Replay Attack (`replay_attack.py`)
-Captures and re-injects stale range measurements, causing honest drones to localise against an outdated swarm configuration.
-
----
-
-## Key Technical Notes
-
-- All PX4 `/fmu/out` subscriptions **silently fail** without `BEST_EFFORT` QoS — set this explicitly or you receive nothing.
-- `ros_gz_bridge` silently strips entity names from `Pose_V → TFMessage` conversions — use `gz-transport` Python bindings directly.
-- Range-only trilateration is rank-deficient for collinear anchor configurations — use full relative-vector residuals (position vectors, not scalars).
-
----
-
-## Threat Model (STRIDE mapping)
-
-| Attack | STRIDE categories |
+| Component | Version |
 |---|---|
-| Sybil / ghost drone injection | Spoofing, Tampering |
-| Wormhole | Tampering, Elevation of privilege |
-| Replay | Spoofing, Denial of service |
-| EKF2 position spoof | Spoofing, Tampering |
+| PX4 SITL | v1.18 |
+| Gazebo | Harmonic 8.11.0 |
+| ROS 2 | Humble |
+| Micro-XRCE-DDS-Agent | Built from source |
+| Python | 3.10 |
+| OS | Ubuntu 22.04 (WSL2 / Windows 11) |
 
 ---
 
-## Running the Testbed
+## Testbed Architecture
+
+5-drone swarm in a GPS-denied Gazebo world. Each drone runs PX4 SITL. The cooperative localisation stack is a novel research artefact — it does not exist in stock PX4.
+
+```
+Gazebo (x500_1..x500_5)
+    ↓ gz-transport
+ground_truth_demux.py → /sim/ground_truth/px4_N/pose
+    ↓
+inter_drone_ranging.py → /px4_N/coop/range_to/px4_M  (LiDAR noise σ=0.05m)
+    ↓
+swarm_registry.py + swarm_heartbeat.py × 5  (Design A)
+    ↓
+[localisation algorithm] × 5 → /px4_N/coop/self_estimate
+    ↓
+extract_ground_truth.py → evidence/gt/gt_px4_N.csv
+analyse_dissertation.py → evidence/figures/dissertation/
+```
+
+---
+
+## Localisation Algorithms
+
+| # | Approach | Script | Key mechanism |
+|---|---|---|---|
+| 1 | WLS | `cooperative_localisation_dynamic.py` | Levenberg-Marquardt, L2 loss |
+| 2 | EKF | `cooperative_localisation_ekf.py` | 6-state EKF, constant-velocity |
+| 3 | WLS + Huber | `coop_loc_wls_huber.py` | Huber loss, down-weights outliers |
+| 4 | WLS + Tukey | `coop_loc_wls_tukey.py` | Bisquare IRLS, hard-zeros outliers |
+| 5 | RANSAC | `coop_loc_ransac.py` | Random consensus, ignores minority |
+| 6 | **EKF + χ² + Huber** | `coop_loc_ekf_chi2_huber.py` | χ² innovation gate + Huber update |
+
+All mitigation nodes (3–6) write per-drone CSV logs to `evidence/metrics/` with columns: `t_sec, x, y, z, solve_ms`.
+
+---
+
+## Attacks Implemented
+
+| Attack | Script | Mechanism | STRIDE |
+|---|---|---|---|
+| Sybil | `sybil_registry_attack.py` | Ghost heartbeats + fake `self_estimate` topics | Spoofing, Tampering |
+| Replay | `replay_attack.py` | 5-second delayed range measurements | Spoofing, DoS |
+| Wormhole | `wormhole_attack.py` | px4_1↔px4_5 range shrunk to 5% of true distance | Tampering, EoP |
+
+### Key Empirical Findings (earlier branches)
+
+- **Sybil**: peak WLS error 0.70 m (5-drone)
+- **Replay**: peak error ~9.45 m
+- **Wormhole**: peak error 83.1 m (5-drone) — largest attack impact
+- **Stale timestamp**: PX4 accepted ~56-year-old timestamps with zero freshness validation
+- **Design B finding**: allowlist blocks Sybil (unknown IDs) but not impersonation (valid ID reuse)
+
+---
+
+## Baseline Results (mitigation-experiments branch)
+
+Measured on px4_1 at hover, no attack, against Gazebo ground truth:
+
+| Approach | Mean error (m) | Peak error (m) | RMSE (m) | Solve time (ms) |
+|---|---|---|---|---|
+| **WLS + Huber** | **0.67** | **1.17** | **0.72** | **1.73** |
+| WLS | 1.89 | 2.40 | 1.89 | — |
+| EKF + χ² + Huber | 1.99 | 2.56 | 2.03 | 0.91 |
+| WLS + Tukey | 2.10 | 2.95 | 2.10 | 5.83 |
+| EKF | 3.35 | 3.38 | 3.35 | — |
+| RANSAC | 4.74 | 5.03 | 4.75 | 20.72 |
+
+---
+
+## Quick Start
+
+### Prerequisites
 
 ```bash
-# 1. Bring up the full stack
-bash scripts/start_lab.sh
+# PX4 SITL, Gazebo Harmonic, ROS 2 Humble, Micro-XRCE-DDS-Agent
+# All installed on Ubuntu 22.04 lab machine
 
-# 2. Ground truth (separate terminal)
-python3 code/ground_truth_demux.py
-
-# 3. Inter-drone ranging (separate terminal)
-python3 code/inter_drone_ranging.py
-
-# 4. Cooperative localisation — one per drone
-python3 code/cooperative_localisation.py px4_1
-python3 code/cooperative_localisation.py px4_2
-python3 code/cooperative_localisation.py px4_3
-
-# 5. Run an attack
-python3 code/sybil_ghost_attack.py px4_2   # px4_2 is the evil drone
+# Build the package
+cd ~/Dissertation/ros_ws/px4_ros_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select swarm_msgs swarm_discovery
+source install/setup.bash
 ```
+
+### Run a single experiment
+
+```bash
+# Terminal 1 — start SITL (leave running)
+bash ~/Dissertation/scripts/start_swarm.sh
+
+# Terminal 2 — run one complete experiment (launch → 90s → kill → save CSVs)
+bash ~/Dissertation/scripts/run_experiment.sh wls_huber baseline
+bash ~/Dissertation/scripts/run_experiment.sh ekf_chi2_huber sybil
+
+# Analyse
+python3 ~/Dissertation/analyse_dissertation.py \
+    --gt-csv ~/Dissertation/evidence/gt/gt_px4_1.csv
+```
+
+### Run the full experiment matrix (~48 min unattended)
+
+```bash
+bash ~/Dissertation/scripts/run_all_experiments.sh
+```
+
+### Supported approaches and attacks
+
+```bash
+# Approaches: wls | ekf | wls_huber | wls_tukey | ransac | ekf_chi2_huber
+# Attacks:    baseline | sybil | replay | wormhole
+
+bash ~/Dissertation/scripts/run_experiment.sh <approach> <attack>
+```
+
+---
+
+## Analysis
+
+```bash
+# Generate all 5 dissertation figures + summary table
+python3 ~/Dissertation/analyse_dissertation.py \
+    --gt-csv ~/Dissertation/evidence/gt/gt_px4_1.csv
+
+# Output: ~/Dissertation/evidence/figures/dissertation/
+#   fig1_baseline_comparison.png    — accuracy per algorithm
+#   fig2_attack_comparison.png      — all approaches under each attack
+#   fig3_rq2_tradeoff.png           — error vs compute cost (RQ2)
+#   fig4_solve_latency.png          — solve time over time
+#   fig5_attack_degradation.png     — error increase under attack
+#   summary_table.csv               — full numeric results
+```
+
+---
+
+## Key Design Decisions
+
+**Full relative-vector residuals** (not range-only trilateration) are required for WLS to avoid rank deficiency with collinear anchors. This was a critical fix achieving sub-centimetre convergence.
+
+**Per-pair independent publishing** in `inter_drone_ranging.py` replaced an all-or-nothing gate that caused cascade dropout when any single drone's ground truth was stale.
+
+**BEST_EFFORT QoS** is required for all PX4 `/fmu/out` topics — RELIABLE subscribers receive nothing and fail silently.
+
+**gz-transport bypasses ros_gz_bridge** for ground truth extraction because the bridge strips entity names from `Pose_V → TFMessage` conversions. Model names in Gazebo are `x500_1..x500_5`, mapped to `px4_1..px4_5` by `extract_ground_truth.py`.
 
 ---
 
 ## References
 
-- Patwari et al., *Locating the Nodes*, IEEE Signal Processing Magazine, 2005
-- Newsome et al., *The Sybil Attack in Sensor Networks*, IPSN 2004
-- Hu, Perrig & Johnson, *Wormhole Attacks in Wireless Networks*, IEEE JSAC 2006
-- Swarm-LIO2, IEEE Transactions on Robotics, 2024
-- UK CAA CAP 3040 — BVLOS regulatory framework
+- Patwari et al., "Locating the nodes," IEEE SPM 2005
+- Wymeersch et al., "Cooperative localization in wireless networks," IEEE 2009
+- Roumeliotis & Bekey, "Distributed multi-robot localization," IEEE T-RO 2002
+- Newsome et al., "The Sybil attack in sensor networks," IPSN 2004
+- Hu, Perrig & Johnson, "Wormhole attacks in wireless networks," IEEE JSAC 2006
+- Choe & Kang, "ECC-Based Authentication for Military IoD," IEEE Access 2025
+- Cordill et al., "Comprehensive Survey of Security and Privacy in UAV Systems," IEEE Access 2025
 
 ---
 
-## Status
-
-| Milestone | Status |
-|---|---|
-| Literature review (20+ papers) | ✅ Complete |
-| Threat model (STRIDE) | ✅ Complete |
-| Testbed build (PX4 SITL + ROS 2) | ✅ Complete |
-| Cooperative localisation stack | ✅ Complete |
-| EKF2 spoof attack | ✅ Demonstrated |
-| Sybil / Replay / Wormhole attacks | 🔄 In progress |
-| Mitigation design | ⬜ Upcoming |
-| Dissertation submission | ⬜ 4 September 2026 |
-
----
-
-*MSc Cyber Security & Infrastructure Security · University of Bristol · 2026*
+*MSc Dissertation — COMSM0117 — University of Bristol — 2026*
