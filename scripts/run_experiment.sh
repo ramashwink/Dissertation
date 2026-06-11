@@ -185,6 +185,21 @@ else
 fi
 
 echo "    Algorithm started. Waiting ${WARMUP_SEC}s for stabilisation..."
+
+# ── Step 2b: Launch CSV logger for WLS/EKF (no built-in logging) ─────────────
+if [ "$APPROACH" = "wls" ] || [ "$APPROACH" = "ekf" ]; then
+  echo "[2b] Starting external CSV logger for $APPROACH..."
+  LOGGER_PATH="$HOME/Dissertation/ros_ws/px4_ros_ws/src/swarm_discovery/swarm_discovery/coop_loc_logger.py"
+  tmux new-window -t $SESSION -n logger
+  tmux send-keys -t $SESSION:logger \
+    "$SRC && sleep 7 && \
+    python3 $LOGGER_PATH $APPROACH px4_1 & \
+    python3 $LOGGER_PATH $APPROACH px4_2 & \
+    python3 $LOGGER_PATH $APPROACH px4_3 & \
+    python3 $LOGGER_PATH $APPROACH px4_4 & \
+    python3 $LOGGER_PATH $APPROACH px4_5 & wait" Enter
+  echo "    CSV logger started."
+fi
 sleep $WARMUP_SEC
 
 # ── Step 3: Start ground truth logger ────────────────────────────────────────
