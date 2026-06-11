@@ -1,25 +1,25 @@
 approach,attack,mean_err_m,peak_err_m,rmse_m,mean_solve_ms
 WLS (baseline),baseline,,,,
-WLS (baseline),sybil,,,,
-WLS (baseline),replay,,,,
-WLS (baseline),wormhole,,,,
+WLS (baseline),sybil,3.2357,4.4722,3.2429,0.000
+WLS (baseline),replay,2.6647,4.4722,2.6892,0.000
+WLS (baseline),wormhole,7.0117,11.7925,7.9001,0.000
 EKF (baseline),baseline,,,,
-EKF (baseline),sybil,,,,
-EKF (baseline),replay,,,,
-EKF (baseline),wormhole,,,,
-WLS + Huber,baseline,3.4089,3.7099,3.4113,2.042
-WLS + Huber,sybil,,,,
-WLS + Huber,replay,,,,
-WLS + Huber,wormhole,,,,
-WLS + Tukey,baseline,2.0974,2.9517,2.1012,5.825
-WLS + Tukey,sybil,,,,
-WLS + Tukey,replay,,,,
-WLS + Tukey,wormhole,,,,
-RANSAC,baseline,4.7429,5.0349,4.7447,20.717
-RANSAC,sybil,,,,
-RANSAC,replay,,,,
-RANSAC,wormhole,,,,
-EKF + chi2 + Huber,baseline,1.9956,2.5623,2.0303,0.906
-EKF + chi2 + Huber,sybil,,,,
-EKF + chi2 + Huber,replay,,,,
-EKF + chi2 + Huber,wormhole,,,,
+EKF (baseline),sybil,2.2902,4.4722,2.3096,0.000
+EKF (baseline),replay,2.3194,4.4722,2.3521,0.000
+EKF (baseline),wormhole,2.5155,4.4722,2.5439,0.000
+WLS + Huber,baseline,,,,
+WLS + Huber,sybil,0.2964,2.0027,0.3804,1.878
+WLS + Huber,replay,0.7735,2.8939,0.7904,1.873
+WLS + Huber,wormhole,7.2687,15.3345,8.6072,2.029
+WLS + Tukey,baseline,,,,
+WLS + Tukey,sybil,4.2113,4.4754,4.2122,3.697
+WLS + Tukey,replay,4.0741,4.4611,4.0746,3.617
+WLS + Tukey,wormhole,4.4926,4.6818,4.4935,3.475
+RANSAC,baseline,,,,
+RANSAC,sybil,4.5757,4.8222,4.5769,13.475
+RANSAC,replay,4.5332,4.7118,4.5349,13.732
+RANSAC,wormhole,4.2766,4.4943,4.2769,12.815
+EKF + chi2 + Huber,baseline,,,,
+EKF + chi2 + Huber,sybil,2.1757,2.2178,2.1757,0.610
+EKF + chi2 + Huber,replay,2.2280,2.2823,2.2280,0.634
+EKF + chi2 + Huber,wormhole,4.4058,4.4866,4.4060,0.511
