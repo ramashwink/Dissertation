@@ -1,0 +1,25 @@
+approach,attack,mean_err_m,peak_err_m,rmse_m,mean_solve_ms
+WLS (baseline),baseline,,,,
+WLS (baseline),sybil,,,,
+WLS (baseline),replay,,,,
+WLS (baseline),wormhole,,,,
+EKF (baseline),baseline,,,,
+EKF (baseline),sybil,,,,
+EKF (baseline),replay,,,,
+EKF (baseline),wormhole,,,,
+WLS + Huber,baseline,5.9750,8.7804,6.1784,2.503
+WLS + Huber,sybil,,,,
+WLS + Huber,replay,,,,
+WLS + Huber,wormhole,,,,
+WLS + Tukey,baseline,2.0974,2.9517,2.1012,5.825
+WLS + Tukey,sybil,,,,
+WLS + Tukey,replay,,,,
+WLS + Tukey,wormhole,,,,
+RANSAC,baseline,4.7429,5.0349,4.7447,20.717
+RANSAC,sybil,,,,
+RANSAC,replay,,,,
+RANSAC,wormhole,,,,
+EKF + chi2 + Huber,baseline,1.9956,2.5623,2.0303,0.906
+EKF + chi2 + Huber,sybil,,,,
+EKF + chi2 + Huber,replay,,,,
+EKF + chi2 + Huber,wormhole,,,,

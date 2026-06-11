@@ -41,3 +41,7 @@ ros_ws/px4_ros_ws/build/
 ros_ws/px4_ros_ws/install/
 ros_ws/px4_ros_ws/log/
 ros_ws/px4_ros_ws/src/px4_msgs/
+evidence/gt/
+evidence/figures/
+__pycache__/
+*.pyc
