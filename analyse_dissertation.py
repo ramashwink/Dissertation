@@ -100,12 +100,18 @@ def find_metrics_csv(approach, attack, drone):
 
 
 def find_gt_csv(drone, approach=None, attack=None):
-    """Find the best available GT CSV for a drone."""
+    """Find the best available GT CSV for a drone.
+    Priority: approach+attack specific > approach baseline > wls_huber > wls > latest.
+    """
     candidates = []
     if approach and attack:
         candidates.append(os.path.join(GT_DIR, f"gt_{drone}_{approach}_{attack}.csv"))
+    if approach:
+        candidates.append(os.path.join(GT_DIR, f"gt_{drone}_{approach}_baseline.csv"))
     candidates += [
+        os.path.join(GT_DIR, f"gt_{drone}_wls_huber_baseline.csv"),
         os.path.join(GT_DIR, f"gt_{drone}_wls_baseline.csv"),
+        os.path.join(GT_DIR, f"gt_{drone}_ekf_baseline.csv"),
         os.path.join(GT_DIR, f"gt_{drone}.csv"),
     ]
     for p in candidates:
