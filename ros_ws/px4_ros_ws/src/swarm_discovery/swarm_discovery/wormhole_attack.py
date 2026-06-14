@@ -2,8 +2,8 @@
 """
 Wormhole attack on cooperative localisation
 ============================================
-Tunnels range measurements between px4_1 and px4_3 (the two farthest
-drones, 2m apart) and republishes with a shrunken range vector, making
+Tunnels range measurements between px4_1 and px4_5 (the two farthest
+drones, ~4.47m apart) and republishes with a shrunken range vector, making
 them appear nearly adjacent. WLS solver collapses their estimates together.
 
 Run:
@@ -78,8 +78,8 @@ class WormholeAttack(Node):
             "true_dist_m", "reported_dist_m",
             "px4_1_est_x", "px4_1_est_y", "px4_1_est_z",
             "px4_1_gt_x",  "px4_1_gt_y",  "px4_1_gt_z", "px4_1_error_m",
-            "px4_3_est_x", "px4_3_est_y", "px4_3_est_z",
-            "px4_3_gt_x",  "px4_3_gt_y",  "px4_3_gt_z", "px4_3_error_m",
+            "px4_5_est_x", "px4_5_est_y", "px4_5_est_z",
+            "px4_5_gt_x",  "px4_5_gt_y",  "px4_5_gt_z", "px4_5_error_m",
             "est_separation_m",
         ])
 

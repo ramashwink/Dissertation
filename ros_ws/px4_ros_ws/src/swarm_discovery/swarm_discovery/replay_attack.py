@@ -20,7 +20,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, PointStamped
 
 EVIL_DRONE    = "px4_2"
-HONEST_DRONES = ["px4_1", "px4_3", "px4_4"]
+HONEST_DRONES = ["px4_1", "px4_3", "px4_4", "px4_5"]
 ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 REPLAY_MODE   = "delayed"
 DELAY_SEC     = 5.0

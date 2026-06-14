@@ -30,6 +30,11 @@ setup(
             'swarm_viz                = swarm_discovery.swarm_viz:main',
             'coop_loc_ekf             = swarm_discovery.cooperative_localisation_ekf:main',
             'ekf_attack_logger        = swarm_discovery.ekf_attack_logger:main',
+            # -- Enhanced attacks (new -- attack-enhanced-verified branch) --
+            'replay_attack_gradual        = swarm_discovery.replay_attack_gradual:main',
+            'sybil_consistent_attack      = swarm_discovery.sybil_consistent_attack:main',
+            'byzantine_insider_attack     = swarm_discovery.byzantine_insider_attack:main',
+            'timesync_attack              = swarm_discovery.timesync_attack:main',
         ],
     },
 )
