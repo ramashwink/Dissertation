@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-analyse_dissertation.py
+analyse_dissertation.py   (PATCHED: all attacks + dynamic figure grids)
 ========================
 Complete dissertation analysis — reads all available metrics CSVs,
 computes error against ground truth, and produces publication-ready figures.
@@ -8,18 +8,20 @@ computes error against ground truth, and produces publication-ready figures.
 Works with whatever data exists — partial runs, missing attacks, missing
 approaches — empty panels show "no data yet" rather than crashing.
 
+PATCH: the attack set now includes the new attacks
+  sybil_consistent, replay_gradual, byzantine, timesync
+and the per-attack figures (fig2, fig5) size their subplot grids to the
+number of attacks instead of assuming 4. Add or remove attacks by editing
+ATTACKS / ATTACK_COLORS / ATTACK_MARKERS only.
+
 Usage:
     python3 ~/Dissertation/analyse_dissertation.py
-
-    # Custom GT file:
     python3 ~/Dissertation/analyse_dissertation.py --gt-csv ~/Dissertation/evidence/gt/gt_px4_1.csv
-
-    # Single drone only:
     python3 ~/Dissertation/analyse_dissertation.py --drone px4_1
 
 Output figures (~/Dissertation/evidence/figures/dissertation/):
     fig1_baseline_comparison.png    — 6-panel, all approaches at baseline
-    fig2_attack_comparison.png      — per-attack 4-panel, all approaches overlaid
+    fig2_attack_comparison.png      — per-attack panels, all approaches overlaid
     fig3_rq2_tradeoff.png           — RQ2 trade-off: error vs compute cost
     fig4_solve_latency.png          — solve time over time (baseline)
     fig5_attack_degradation.png     — error increase under each attack vs baseline
@@ -28,6 +30,7 @@ Output figures (~/Dissertation/evidence/figures/dissertation/):
 import argparse
 import os
 import sys
+import math
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -50,12 +53,40 @@ APPROACHES = {
     "ekf_chi2_huber": {"label": "EKF+χ²+Huber ★",   "color": "#27ae60", "ls": "-",  "marker": "*"},
 }
 
-ATTACKS = ["baseline", "sybil", "replay", "wormhole"]
+# ── Attacks ───────────────────────────────────────────────────────────────────
+# To add/remove an attack, edit these three structures only. Everything else
+# (figures, summary table) is driven from them.
+ATTACKS = [
+    "baseline",
+    "sybil",
+    "replay",
+    "wormhole",
+    "sybil_consistent",
+    "replay_gradual",
+    "byzantine",
+    "timesync",
+]
+
 ATTACK_COLORS = {
-    "baseline": "#7f8c8d",
-    "sybil":    "#e74c3c",
-    "replay":   "#e67e22",
-    "wormhole": "#8e44ad",
+    "baseline":         "#7f8c8d",
+    "sybil":            "#e74c3c",
+    "replay":           "#e67e22",
+    "wormhole":         "#8e44ad",
+    "sybil_consistent": "#c0392b",
+    "replay_gradual":   "#d35400",
+    "byzantine":        "#16a085",
+    "timesync":         "#2980b9",
+}
+
+ATTACK_MARKERS = {
+    "baseline":         "o",
+    "sybil":            "s",
+    "replay":           "^",
+    "wormhole":         "D",
+    "sybil_consistent": "P",
+    "replay_gradual":   "X",
+    "byzantine":        "*",
+    "timesync":         "h",
 }
 
 DRONES = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
@@ -69,6 +100,40 @@ plt.rcParams.update({
     "figure.dpi":      150,
 })
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def _atk_color(attack):
+    return ATTACK_COLORS.get(attack, "#555555")
+
+
+def _atk_marker(attack):
+    return ATTACK_MARKERS.get(attack, "o")
+
+
+def _grid(n):
+    """Return (rows, cols) for n panels, biased toward wide layouts."""
+    if n <= 1:
+        return 1, 1
+    if n <= 2:
+        return 1, 2
+    if n <= 3:
+        return 1, 3
+    if n <= 4:
+        return 2, 2
+    if n <= 6:
+        return 2, 3
+    if n <= 8:
+        return 2, 4
+    if n <= 9:
+        return 3, 3
+    return math.ceil(n / 4), 4
+
+
+def _axes_list(axes):
+    """Normalise plt.subplots axes return into a flat list."""
+    if isinstance(axes, np.ndarray):
+        return list(axes.flatten())
+    return [axes]
 
 
 def load_csv(path):
@@ -121,10 +186,7 @@ def find_gt_csv(drone, approach=None, attack=None):
 
 
 def compute_error(df, gt_df):
-    """Euclidean error vs ground truth using relative timestamps.
-    Relative time (seconds since first row) allows CSVs from different
-    sessions to be compared — GT hover position is valid across runs.
-    """
+    """Euclidean error vs ground truth using relative timestamps."""
     if gt_df is None:
         return None
     if "t_sec" not in df.columns:
@@ -175,9 +237,6 @@ def load_all_results(primary_drone):
             if "t_sec" not in df.columns and "timestamp" in df.columns:
                 df = df.rename(columns={"timestamp": "t_sec"})
 
-            if "t_sec" not in df.columns and "timestamp" in df.columns:
-                df = df.rename(columns={"timestamp": "t_sec"})
-
             gt_df    = get_gt(ap, attack)
             err      = compute_error(df, gt_df)
             s        = err_stats(err)
@@ -221,14 +280,13 @@ def fig1_baseline_comparison(results, out_dir):
             continue
 
         t_full = r["df"]["t_sec"].values
-        t   = t_full - t_full[0]          # relative time
+        t   = t_full - t_full[0]
         err = r["err"]
-        t   = t[:len(err)]                # match mask length
+        t   = t[:len(err)]
         ax.plot(t, err, color=ap_meta["color"], linewidth=1.2, alpha=0.85)
         ax.axhline(r["mean"], color=ap_meta["color"], linewidth=1,
                    linestyle="--", alpha=0.6, label=f"mean={r['mean']:.2f}m")
 
-        # Annotate stats
         ax.text(0.97, 0.97,
                 f"mean {r['mean']:.2f}m\npeak {r['peak']:.2f}m\nsolve {r['mean_solve_ms']:.1f}ms",
                 transform=ax.transAxes, ha="right", va="top", fontsize=9,
@@ -242,16 +300,19 @@ def fig1_baseline_comparison(results, out_dir):
     print(f"  Fig 1 -> {out}")
 
 
-# ── Figure 2: Per-attack 4-panel — all approaches overlaid ───────────────────
+# ── Figure 2: Per-attack panels — all approaches overlaid ────────────────────
 def fig2_attack_comparison(results, out_dir):
-    fig, axes = plt.subplots(2, 2, figsize=(16, 11))
+    n = len(ATTACKS)
+    rows, cols = _grid(n)
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5.2, rows * 4.8))
     fig.suptitle("All Approaches Under Each Attack — px4_1\nError vs Gazebo Ground Truth (m)",
                  fontsize=13, fontweight="bold")
+    ax_list = _axes_list(axes)
 
     for idx, attack in enumerate(ATTACKS):
-        ax = axes.flatten()[idx]
+        ax = ax_list[idx]
         ax.set_title(f"Attack: {attack}", fontsize=12, fontweight="bold",
-                     color=ATTACK_COLORS[attack])
+                     color=_atk_color(attack))
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Error vs GT (m)")
         ax.grid(True, alpha=0.3)
@@ -271,7 +332,11 @@ def fig2_attack_comparison(results, out_dir):
         if not plotted:
             no_data_panel(ax)
         else:
-            ax.legend(fontsize=8, loc="upper right")
+            ax.legend(fontsize=7, loc="upper right")
+
+    # Hide any unused panels
+    for j in range(n, len(ax_list)):
+        ax_list[j].axis("off")
 
     plt.tight_layout()
     out = os.path.join(out_dir, "fig2_attack_comparison.png")
@@ -290,7 +355,7 @@ def fig3_rq2_tradeoff(results, out_dir):
     ax1 = fig.add_subplot(gs[0, 0])
     ax2 = fig.add_subplot(gs[0, 1])
 
-    # ── Left: bar chart of mean error per approach (baseline) ────────────────
+    # Left: bar chart of mean error per approach (baseline)
     ap_labels, mean_errs, bar_colors = [], [], []
     for ap, ap_meta in APPROACHES.items():
         r = results[ap].get("baseline")
@@ -311,29 +376,23 @@ def fig3_rq2_tradeoff(results, out_dir):
                      f"{val:.2f}m", ha="center", va="bottom", fontsize=9)
     ax1.grid(True, axis="y", alpha=0.3)
 
-    # ── Right: scatter — mean error vs solve time, all attacks ───────────────
-    attack_markers = {"baseline": "o", "sybil": "s", "replay": "^", "wormhole": "D"}
-    attack_sizes   = {"baseline": 100, "sybil": 120, "replay": 120, "wormhole": 120}
-    handles = []
-
+    # Right: scatter — mean error vs solve time, all attacks
     for ap, ap_meta in APPROACHES.items():
         for attack in ATTACKS:
             r = results[ap].get(attack)
             if r is None or np.isnan(r.get("mean", np.nan)) or np.isnan(r.get("mean_solve_ms", np.nan)):
                 continue
-            sc = ax2.scatter(r["mean_solve_ms"], r["mean"],
-                             color=ap_meta["color"],
-                             marker=attack_markers[attack],
-                             s=attack_sizes[attack],
-                             alpha=0.85, zorder=5,
-                             edgecolors="white", linewidths=0.5)
+            ax2.scatter(r["mean_solve_ms"], r["mean"],
+                        color=ap_meta["color"],
+                        marker=_atk_marker(attack),
+                        s=110, alpha=0.85, zorder=5,
+                        edgecolors="white", linewidths=0.5)
 
-    # Legend: approaches by color
+    handles = []
     for ap, ap_meta in APPROACHES.items():
         handles.append(mpatches.Patch(color=ap_meta["color"], label=ap_meta["label"]))
-    # Legend: attacks by marker shape (text)
-    for atk, mk in attack_markers.items():
-        handles.append(plt.Line2D([0], [0], marker=mk, color="gray",
+    for atk in ATTACKS:
+        handles.append(plt.Line2D([0], [0], marker=_atk_marker(atk), color="gray",
                                   linestyle="None", markersize=8,
                                   label=f"attack: {atk}"))
 
@@ -344,7 +403,6 @@ def fig3_rq2_tradeoff(results, out_dir):
                bbox_to_anchor=(1.01, 1), borderaxespad=0)
     ax2.grid(True, alpha=0.3)
 
-    # Annotate ideal quadrant
     ax2.annotate("ideal\nquadrant", xy=(0, 0), xytext=(0.05, 0.08),
                  textcoords="axes fraction", fontsize=8, color="#27ae60",
                  arrowprops=dict(arrowstyle="->", color="#27ae60", lw=0.8))
@@ -371,7 +429,6 @@ def fig4_solve_latency(results, out_dir):
         if r is None or "solve_ms" not in r["df"].columns:
             continue
         df = r["df"]
-        # Skip WLS/EKF — their solve_ms is 0 (logged externally)
         if df["solve_ms"].max() < 0.01:
             continue
         t_s = df["t_sec"].values; t_s = t_s - t_s[0]
@@ -382,7 +439,6 @@ def fig4_solve_latency(results, out_dir):
 
     if plotted:
         ax.legend(fontsize=9)
-        # Add mean annotations
         for ap, ap_meta in APPROACHES.items():
             r = results[ap].get("baseline")
             if r is None or np.isnan(r["mean_solve_ms"]) or r["mean_solve_ms"] < 0.01:
@@ -401,17 +457,19 @@ def fig4_solve_latency(results, out_dir):
 
 # ── Figure 5: Attack degradation bar chart ────────────────────────────────────
 def fig5_attack_degradation(results, out_dir):
-    """Shows how much each attack raises mean error above baseline for each approach."""
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    """How much each attack raises mean error above baseline for each approach."""
+    attack_list = [a for a in ATTACKS if a != "baseline"]
+    n = len(attack_list)
+    rows, cols = _grid(n)
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5.0, rows * 4.6))
     fig.suptitle("Attack Impact — Mean Error Increase Above Baseline (m)\npx4_1",
                  fontsize=13, fontweight="bold")
+    ax_list = _axes_list(axes)
 
-    attack_list = ["sybil", "replay", "wormhole"]
-
-    for col, attack in enumerate(attack_list):
-        ax = axes[col]
+    for col_idx, attack in enumerate(attack_list):
+        ax = ax_list[col_idx]
         ax.set_title(f"Attack: {attack}", fontsize=12, fontweight="bold",
-                     color=ATTACK_COLORS[attack])
+                     color=_atk_color(attack))
         ax.set_ylabel("Error increase above baseline (m)")
         ax.grid(True, axis="y", alpha=0.3)
 
@@ -419,19 +477,16 @@ def fig5_attack_degradation(results, out_dir):
         for ap, ap_meta in APPROACHES.items():
             r_base   = results[ap].get("baseline")
             r_attack = results[ap].get(attack)
-
             if r_base is None or r_attack is None:
                 continue
             if np.isnan(r_base["mean"]) or np.isnan(r_attack["mean"]):
                 continue
-
-            delta = r_attack["mean"] - r_base["mean"]
+            deltas.append(r_attack["mean"] - r_base["mean"])
             ap_labels.append(ap_meta["label"])
-            deltas.append(delta)
             bar_colors.append(ap_meta["color"])
 
         if not ap_labels:
-            no_data_panel(ax, f"No {attack} attack data yet")
+            no_data_panel(ax, f"No {attack} data yet")
             continue
 
         bars = ax.bar(range(len(ap_labels)), deltas,
@@ -439,13 +494,15 @@ def fig5_attack_degradation(results, out_dir):
         ax.set_xticks(range(len(ap_labels)))
         ax.set_xticklabels(ap_labels, rotation=30, ha="right", fontsize=8)
         ax.axhline(0, color="black", linewidth=0.8, linestyle="-")
-
         for bar, val in zip(bars, deltas):
             color = "#c0392b" if val > 0 else "#27ae60"
             ax.text(bar.get_x() + bar.get_width()/2,
                     bar.get_height() + (0.02 if val >= 0 else -0.12),
                     f"{val:+.2f}m", ha="center", va="bottom",
                     fontsize=9, color=color, fontweight="bold")
+
+    for j in range(n, len(ax_list)):
+        ax_list[j].axis("off")
 
     plt.tight_layout()
     out = os.path.join(out_dir, "fig5_attack_degradation.png")
@@ -478,13 +535,12 @@ def write_summary_table(results, out_dir):
     df.to_csv(out, index=False)
     print(f"  Summary table -> {out}")
 
-    # Also print to console
     print("\n  === RESULTS SUMMARY ===")
-    print(f"  {'Approach':<22} {'Attack':<10} {'Mean(m)':>8} {'Peak(m)':>8} {'RMSE(m)':>8} {'Solve(ms)':>10}")
-    print(f"  {'-'*72}")
+    print(f"  {'Approach':<22} {'Attack':<18} {'Mean(m)':>8} {'Peak(m)':>8} {'RMSE(m)':>8} {'Solve(ms)':>10}")
+    print(f"  {'-'*80}")
     for _, row in df.iterrows():
         if row["mean_err_m"]:
-            print(f"  {row['approach']:<22} {row['attack']:<10} "
+            print(f"  {row['approach']:<22} {row['attack']:<18} "
                   f"{row['mean_err_m']:>8} {row['peak_err_m']:>8} "
                   f"{row['rmse_m']:>8} {row['mean_solve_ms']:>10}")
 
@@ -500,11 +556,7 @@ def main():
 
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # Override GT if specified
     if args.gt_csv:
-        # Patch find_gt_csv to always return this file
-        import builtins
-        _orig_find = globals()["find_gt_csv"]
         globals()["find_gt_csv"] = lambda drone, approach=None, attack=None: args.gt_csv
 
     print(f"\nDissertation Analysis")
@@ -512,22 +564,21 @@ def main():
     print(f"  Metrics:    {METRICS_DIR}")
     print(f"  GT dir:     {GT_DIR}")
     print(f"  Output:     {args.out_dir}")
+    print(f"  Attacks:    {', '.join(ATTACKS)}")
     print()
 
     print("Loading results...")
     results = load_all_results(args.drone)
 
-    # Print what was found
     found = [(ap, atk) for ap in APPROACHES for atk in ATTACKS
              if results[ap].get(atk) is not None]
     print(f"  Found {len(found)} experiment records")
     for ap, atk in found:
         r = results[ap][atk]
-        print(f"    {ap:<20} {atk:<10}  mean={r['mean']:.3f}m  "
+        print(f"    {ap:<20} {atk:<18}  mean={r['mean']:.3f}m  "
               f"peak={r['peak']:.3f}m  solve={r['mean_solve_ms']:.2f}ms")
 
     print(f"\nGenerating figures -> {args.out_dir}/")
-
     fig1_baseline_comparison(results, args.out_dir)
     fig2_attack_comparison(results, args.out_dir)
     fig3_rq2_tradeoff(results, args.out_dir)
@@ -536,15 +587,15 @@ def main():
     write_summary_table(results, args.out_dir)
 
     print("\nAll figures saved.")
-    print(f"\nView figures:")
     print(f"  ls -lh {args.out_dir}/")
-    print(f"\nNext: run attack experiments to fill in the missing panels:")
     missing = [(ap, atk) for ap in APPROACHES for atk in ATTACKS
                if results[ap].get(atk) is None]
-    for ap, atk in missing[:8]:
-        print(f"  bash ~/Dissertation/scripts/run_experiment.sh {ap} {atk}")
-    if len(missing) > 8:
-        print(f"  ... and {len(missing)-8} more")
+    if missing:
+        print(f"\nNext: fill in missing panels:")
+        for ap, atk in missing[:10]:
+            print(f"  bash ~/Dissertation/scripts/run_experiment.sh {ap} {atk}")
+        if len(missing) > 10:
+            print(f"  ... and {len(missing)-10} more")
 
 
 if __name__ == "__main__":

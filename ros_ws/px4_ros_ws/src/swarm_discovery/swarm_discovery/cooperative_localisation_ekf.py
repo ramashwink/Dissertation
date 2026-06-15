@@ -1,9 +1,26 @@
 #!/usr/bin/env python3
 """
-Cooperative localisation node — EKF edition
-=============================================
+Cooperative localisation node — EKF edition  (PATCHED: closes cooperative loop)
+==============================================================================
 Drop-in replacement for cooperative_localisation_dynamic.py.
 Runs an Extended Kalman Filter instead of batch WLS.
+
+PATCH (loop closure):
+  This node previously published ONLY to /{ns}/coop/ekf_estimate while
+  subscribing to neighbours' /{ns}/coop/self_estimate. In an all-EKF run
+  nobody published self_estimate, so neighbour anchors stayed frozen at
+  their registry/spawn values forever — an OPEN cooperative loop, which made
+  the EKF baseline appear attack-invariant.
+
+  Fix: also publish the position estimate on the shared cooperative anchor
+  topic /{ns}/coop/self_estimate (what every other localiser publishes and
+  subscribes to). /{ns}/coop/ekf_estimate is retained so coop_loc_logger
+  (TOPIC_MAP['ekf'] = 'coop/ekf_estimate') and the covariance topic are
+  unchanged.
+
+  Note: for a STATIC swarm with correct spawn geometry the open loop is
+  benign (static neighbours really are at their spawn positions), but loop
+  closure is mandatory the moment the swarm flies, and is correct regardless.
 
 State vector: [px, py, pz, vx, vy, vz]  (6×1)
   - Position + velocity in ENU world frame
@@ -23,21 +40,17 @@ Update step (per neighbour measurement):
   Kalman gain: K = P·Hᵀ·(H·P·Hᵀ + R)⁻¹
   Update:      x = x + K·y,   P = (I - K·H)·P
 
-Same ROS 2 interface as coop_loc_dynamic:
+ROS 2 interface:
   - Subscribes to /swarm/registry (dynamic neighbour discovery)
   - Subscribes to /px4_N/coop/range_to/{neighbour}
   - Subscribes to /{neighbour}/coop/self_estimate
-  - Publishes  /px4_N/coop/self_estimate  (PoseStamped — position only)
-  - Publishes  /px4_N/coop/self_estimate_cov (PoseWithCovarianceStamped)
+  - Publishes  /px4_N/coop/self_estimate      (PoseStamped — closes the loop)
+  - Publishes  /px4_N/coop/ekf_estimate       (PoseStamped — logger-facing)
+  - Publishes  /px4_N/coop/ekf_estimate_cov   (PoseWithCovarianceStamped)
 
 Switch algorithm at launch:
   ros2 run swarm_discovery coop_loc_ekf px4_1
   ros2 run swarm_discovery coop_loc_dynamic px4_1   ← WLS (unchanged)
-
-Run both in parallel for comparison:
-  ros2 run swarm_discovery coop_loc_ekf     px4_1 &
-  ros2 run swarm_discovery coop_loc_dynamic px4_1 &
-  (they publish on different topics — ekf uses /ekf/ prefix)
 """
 import sys
 import time
@@ -90,19 +103,26 @@ class EKFCooperativeLocalisation(Node):
             SwarmRegistry, "/swarm/registry", self._on_registry, 10)
 
         # ── Publishers ────────────────────────────────────────────────────
-        # Primary: same topic as WLS so downstream nodes work unchanged
+        # PATCH: shared cooperative anchor topic — what neighbours subscribe to.
+        # Publishing here closes the cooperative loop in an all-EKF swarm.
+        self._coop_pub = self.create_publisher(
+            PoseStamped,
+            f"/{drone_ns}/coop/self_estimate", 10)
+
+        # Logger-facing topic (coop_loc_logger reads coop/ekf_estimate)
         self._pose_pub = self.create_publisher(
             PoseStamped,
             f"/{drone_ns}/coop/ekf_estimate", 10)
 
-        # Secondary: covariance topic (EKF-only output)
+        # Covariance topic (EKF-only output)
         self._cov_pub = self.create_publisher(
             PoseWithCovarianceStamped,
             f"/{drone_ns}/coop/ekf_estimate_cov", 10)
 
         self.create_timer(1.0 / PUBLISH_HZ, self._tick)
         self.get_logger().info(
-            f"[EKF] {drone_ns} — Q_pos={Q_POS} Q_vel={Q_VEL} R={R_RANGE}")
+            f"[EKF] {drone_ns} — Q_pos={Q_POS} Q_vel={Q_VEL} R={R_RANGE} "
+            f"(publishing self_estimate + ekf_estimate)")
 
     # ── Registry callback (identical to coop_loc_dynamic) ─────────────────
     def _on_registry(self, msg: SwarmRegistry):
@@ -266,6 +286,10 @@ class EKFCooperativeLocalisation(Node):
         ps.pose.position.y = float(pos[1])
         ps.pose.position.z = float(pos[2])
         ps.pose.orientation.w = 1.0
+
+        # PATCH: publish on the shared cooperative anchor topic (closes loop)
+        # AND on the logger-facing ekf_estimate topic.
+        self._coop_pub.publish(ps)
         self._pose_pub.publish(ps)
 
         # PoseWithCovarianceStamped (position + 3×3 covariance)

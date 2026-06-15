@@ -30,8 +30,7 @@ FILTER_APPROACH=${1:-}
 FILTER_ATTACK=${2:-}
 
 APPROACHES=("wls" "ekf" "wls_huber" "wls_tukey" "ransac" "ekf_chi2_huber")
-ATTACKS=("baseline" "sybil" "replay" "wormhole")
-
+ATTACKS=("baseline" "sybil" "replay" "wormhole" "sybil_consistent" "replay_gradual" "byzantine" "timesync")
 # Build list of runs to execute
 RUNS=()
 for approach in "${APPROACHES[@]}"; do

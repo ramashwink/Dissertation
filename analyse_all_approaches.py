@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-analyse_all_approaches.py  (v2 — works with or without ground truth)
+analyse_all_approaches.py  (PATCHED: all attacks + dynamic per-attack grid)
 ======================================================================
 Reads per-drone CSV logs from ~/Dissertation/evidence/metrics/ and
 optionally a ground truth CSV, then produces:
@@ -8,19 +8,12 @@ optionally a ground truth CSV, then produces:
   1. Summary table  (console + CSV)
   2. 6-panel error/position comparison figure
   3. Trade-off scatter  (mean error vs mean solve_ms)
-  4. Solve-latency-over-time figure
+  4. Per-attack figure (all approaches overlaid), grid sized to #attacks
+  5. Solve-latency-over-time figure
 
-WITHOUT ground truth (--gt-csv omitted):
-  Error = displacement from spawn position (drift proxy).
-  Solve-time figures still fully produced.
-
-WITH ground truth:
-  Error = Euclidean distance from Gazebo true position.
-
-CSV naming supported:
-  {approach}_{drone}.csv
-  {approach}_{drone}_baseline.csv
-  {approach}_{drone}_{attack}.csv
+PATCH: attack set extended with sybil_consistent, replay_gradual,
+byzantine, timesync. The per-attack figure sizes its grid to the number
+of attacks instead of a fixed 2×2.
 
 Usage:
   python3 analyse_all_approaches.py --drone px4_1
@@ -29,6 +22,7 @@ Usage:
 """
 import argparse
 import os
+import math
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -55,13 +49,70 @@ APPROACHES = {
     "ekf_chi2_huber": {"label": "EKF + chi2 + Huber", "color": "#2ecc71", "ls": "-"},
 }
 
-ATTACKS = ["baseline", "sybil", "replay", "wormhole"]
+ATTACKS = [
+    "baseline",
+    "sybil",
+    "replay",
+    "wormhole",
+    "sybil_consistent",
+    "replay_gradual",
+    "byzantine",
+    "timesync",
+]
+
 ATTACK_COLORS = {
-    "baseline": "#7f8c8d",
-    "sybil":    "#e74c3c",
-    "replay":   "#e67e22",
-    "wormhole": "#8e44ad",
+    "baseline":         "#7f8c8d",
+    "sybil":            "#e74c3c",
+    "replay":           "#e67e22",
+    "wormhole":         "#8e44ad",
+    "sybil_consistent": "#c0392b",
+    "replay_gradual":   "#d35400",
+    "byzantine":        "#16a085",
+    "timesync":         "#2980b9",
 }
+
+ATTACK_MARKERS = {
+    "baseline":         "o",
+    "sybil":            "s",
+    "replay":           "^",
+    "wormhole":         "D",
+    "sybil_consistent": "P",
+    "replay_gradual":   "X",
+    "byzantine":        "*",
+    "timesync":         "h",
+}
+
+
+def _atk_color(a):
+    return ATTACK_COLORS.get(a, "#555555")
+
+
+def _atk_marker(a):
+    return ATTACK_MARKERS.get(a, "o")
+
+
+def _grid(n):
+    if n <= 1:
+        return 1, 1
+    if n <= 2:
+        return 1, 2
+    if n <= 3:
+        return 1, 3
+    if n <= 4:
+        return 2, 2
+    if n <= 6:
+        return 2, 3
+    if n <= 8:
+        return 2, 4
+    if n <= 9:
+        return 3, 3
+    return math.ceil(n / 4), 4
+
+
+def _axes_list(axes):
+    if isinstance(axes, np.ndarray):
+        return list(axes.flatten())
+    return [axes]
 
 
 def load_csv(path):
@@ -141,8 +192,6 @@ def main():
     if args.gt_csv and gt_df is None:
         if os.path.exists(args.gt_csv):
             print(f"[warn] GT CSV exists but has no data rows: {args.gt_csv}")
-            print("[warn]  -> Did you run extract_ground_truth.py while SITL was running?")
-            print("[warn]  -> Model names must match: Gazebo uses x500_1..x500_5")
         else:
             print(f"[warn] GT CSV not found: {args.gt_csv}")
         print("[warn] Falling back to spawn-position drift proxy")
@@ -152,6 +201,7 @@ def main():
 
     print(f"\nDrone:      {drone}")
     print(f"Metrics:    {metrics_dir}")
+    print(f"Attacks:    {', '.join(ATTACKS)}")
     print(f"Error mode: {'ground truth' if gt_df is not None else 'spawn-position drift proxy'}\n")
 
     # ── Load all results ──────────────────────────────────────────────────────
@@ -173,7 +223,7 @@ def main():
             mean_ms = float(df["solve_ms"].mean()) if "solve_ms" in df.columns else np.nan
 
             results[ap][attack] = {**s, "mean_solve_ms": mean_ms, "df": df, "err": err}
-            print(f"  [{ap:20s}][{attack:10s}]  "
+            print(f"  [{ap:20s}][{attack:18s}]  "
                   f"mean={s['mean']:6.3f}m  peak={s['peak']:7.3f}m  "
                   f"rmse={s['rmse']:6.3f}m  solve={mean_ms:6.2f}ms")
 
@@ -215,7 +265,7 @@ def main():
             if r is None or r["err"] is None:
                 continue
             ax.plot(r["df"]["t_sec"].values, r["err"],
-                    label=attack, color=ATTACK_COLORS[attack],
+                    label=attack, color=_atk_color(attack),
                     linewidth=1.5, alpha=0.85)
             plotted = True
         if not plotted:
@@ -223,7 +273,7 @@ def main():
                     transform=ax.transAxes, ha="center", va="center",
                     color="#bbb", fontsize=10)
         else:
-            ax.legend(fontsize=8)
+            ax.legend(fontsize=7)
         ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -236,7 +286,6 @@ def main():
     fig2, axes2 = plt.subplots(1, 2, figsize=(14, 6))
     fig2.suptitle(f"RQ2 Trade-off Evidence — {drone}", fontsize=13, fontweight="bold")
 
-    # Bar: mean solve time per approach (baseline condition)
     ap_labels, solve_times, bar_colors = [], [], []
     for ap, ap_meta in APPROACHES.items():
         r = results[ap].get("baseline")
@@ -262,12 +311,10 @@ def main():
                     transform=ax_bar.transAxes, ha="center", va="center", color="#bbb")
     ax_bar.grid(True, axis="y", alpha=0.3)
 
-    # Scatter: mean error vs mean solve time
     ax_scat = axes2[1]
     ax_scat.set_xlabel("Mean Solve Time (ms)")
     ax_scat.set_ylabel(error_label)
     ax_scat.set_title("Security-Compute Trade-off")
-    markers = {"baseline":"o", "sybil":"s", "replay":"^", "wormhole":"D"}
     scatter_done = False
     for ap, ap_meta in APPROACHES.items():
         for attack in ATTACKS:
@@ -275,7 +322,7 @@ def main():
             if r is None or np.isnan(r["mean"]) or np.isnan(r["mean_solve_ms"]):
                 continue
             ax_scat.scatter(r["mean_solve_ms"], r["mean"],
-                            color=ap_meta["color"], marker=markers[attack],
+                            color=ap_meta["color"], marker=_atk_marker(attack),
                             s=80, alpha=0.85, zorder=5)
             ax_scat.annotate(f"{ap}\n({attack})",
                              (r["mean_solve_ms"], r["mean"]),
@@ -293,15 +340,18 @@ def main():
     plt.close(fig2)
     print(f"Figure 2 -> {p2}")
 
-    # ── Figure 3: Per-attack 4-panel (all approaches overlaid) ───────────────
-    fig3, axes3 = plt.subplots(2, 2, figsize=(16, 10))
+    # ── Figure 3: Per-attack panels (all approaches overlaid) ────────────────
+    n = len(ATTACKS)
+    rows_, cols_ = _grid(n)
+    fig3, axes3 = plt.subplots(rows_, cols_, figsize=(cols_ * 5.2, rows_ * 4.8))
     fig3.suptitle(f"All Approaches Under Each Attack — {drone}\n({error_label})",
                   fontsize=13, fontweight="bold")
+    ax3_list = _axes_list(axes3)
 
     for idx, attack in enumerate(ATTACKS):
-        ax = axes3.flatten()[idx]
+        ax = ax3_list[idx]
         ax.set_title(f"Attack: {attack}", fontsize=11, fontweight="bold",
-                     color=ATTACK_COLORS[attack])
+                     color=_atk_color(attack))
         ax.set_xlabel("Time (s)", fontsize=9)
         ax.set_ylabel(error_label, fontsize=9)
         plotted = False
@@ -321,6 +371,9 @@ def main():
         else:
             ax.legend(fontsize=7)
         ax.grid(True, alpha=0.3)
+
+    for j in range(n, len(ax3_list)):
+        ax3_list[j].axis("off")
 
     plt.tight_layout()
     p3 = os.path.join(figures_dir, f"per_attack_all_approaches_{drone}.png")
@@ -357,7 +410,6 @@ def main():
     if gt_df is None:
         print("\nNOTE: For accurate error stats, extract ground truth while running:")
         print("  python3 extract_ground_truth.py")
-        print("Then re-run with:")
         print(f"  python3 analyse_all_approaches.py --drone {drone} \\")
         print(f"      --gt-csv ~/Dissertation/evidence/gt/gt_{drone}.csv")
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Cooperative localisation -- EKF + χ² gating + Huber (Approach 6 / Bold).
+PATCHED: realistic measurement noise + freeze diagnostics.
 
 This is the dissertation's primary proposed mitigation.  It combines:
 
@@ -16,24 +17,24 @@ This is the dissertation's primary proposed mitigation.  It combines:
      incorporated with Huber weights in the EKF update step, providing
      further robustness to heavy-tailed noise.
 
-Security relevance:
-  - Replay:    stale ranges cause large innovations → χ² gate rejects them.
-  - Wormhole:  5%-shrunk range creates a large Mahalanobis distance → gate.
-  - Sybil:     ghost position broadcasts are inconsistent with EKF prediction
-               → gated out; χ² threshold tuned to swarm noise level.
+PATCH NOTES
+-----------
+* MEAS_NOISE_STD raised 0.05 -> 0.20 m.  With R=0.0025 m² the filter was
+  over-confident: after the first update P collapsed toward Q, S≈R became
+  tiny, and ANY residual innovation produced a huge Mahalanobis distance,
+  so the χ² gate rejected essentially everything and the estimate froze at
+  its initial state (std ~1 mm). A 5 cm range σ plus 0.0087 rad bearing σ
+  projected over multi-metre baselines is realistically >10 cm laterally,
+  so R≈0.04 m² is both physical and keeps the gate from becoming a
+  hair-trigger. Re-tune per experiment.
+* Added a per-tick liveness check: if the gate rejects 100% of
+  measurements over a sustained window the node logs a FROZEN warning so a
+  dead filter is never silently scored as "robust". The CSV already carries
+  n_passed_gate / n_rejected_gate / trace_P for offline confirmation.
 
 EKF state vector:  x = [px, py, pz]  (position only, constant-velocity
                    process model is an extension left for future work).
-Process model:     identity (position does not change between ticks at
-                   hover; add velocity terms once in-flight).
 Observation model: h(x) = x_neighbour - x  (relative position vector)
-
-Tuning:
-  PROCESS_NOISE_STD  -- (m) random walk noise per tick (e.g. 0.01 m)
-  MEAS_NOISE_STD     -- (m) LiDAR measurement noise per axis (e.g. 0.05 m)
-  CHI2_THRESHOLD     -- χ²(dof=3, p=0.95) ≈ 7.815; increase to be more
-                        permissive, decrease to be more aggressive.
-  HUBER_DELTA        -- (m) Huber threshold applied AFTER gating
 
 Usage:
     python3 coop_loc_ekf_chi2_huber.py px4_1
@@ -63,9 +64,13 @@ SPAWN_POSITIONS = {
 
 PUBLISH_HZ         = 10.0
 PROCESS_NOISE_STD  = 0.01   # metres per tick (random walk)
-MEAS_NOISE_STD     = 0.05   # metres per axis (LiDAR noise)
-CHI2_THRESHOLD     = 7.815  # χ²(3 dof, p=0.95)
+MEAS_NOISE_STD     = 0.20   # PATCH: was 0.05; R = 0.04 m² (realistic LiDAR coop noise)
+CHI2_THRESHOLD     = 7.815  # χ²(3 dof, p=0.95) — correct for 3-dof measurement
 HUBER_DELTA        = 0.5    # metres — Huber threshold for accepted measurements
+
+# Freeze guard: if every gated measurement is rejected for this many
+# consecutive ticks, warn (the filter is no longer being updated).
+FREEZE_WARN_TICKS  = 30      # ~3 s at 10 Hz
 
 APPROACH = "ekf_chi2_huber"
 LOG_DIR  = os.path.expanduser("~/Dissertation/evidence/metrics")
@@ -90,6 +95,10 @@ class CoopLocEKFChi2Huber(Node):
         self.latest_range_vec     = {n: None              for n in self.neighbours}
         self.latest_neighbour_pos = {n: SPAWN_POSITIONS[n].copy() for n in self.neighbours}
 
+        # Freeze diagnostics
+        self._consecutive_all_reject = 0
+        self._froze_warned           = False
+
         for nbr in self.neighbours:
             self.create_subscription(
                 PointStamped, f"/{drone_ns}/coop/range_to/{nbr}",
@@ -109,7 +118,8 @@ class CoopLocEKFChi2Huber(Node):
             "t_sec", "x", "y", "z", "solve_ms",
             "n_passed_gate", "n_rejected_gate", "trace_P"
         ])
-        self.get_logger().info(f"Logging to {log_path}")
+        self.get_logger().info(
+            f"Logging to {log_path}  (R={MEAS_NOISE_STD**2:.4f} m², χ²={CHI2_THRESHOLD})")
 
         self.timer = self.create_timer(1.0 / PUBLISH_HZ, self._tick)
         self._t0   = time.monotonic()
@@ -128,6 +138,22 @@ class CoopLocEKFChi2Huber(Node):
         t_start = time.perf_counter()
         n_pass, n_rej = self._ekf_update()
         solve_ms = (time.perf_counter() - t_start) * 1e3
+
+        # ── Freeze guard ─────────────────────────────────────────────────────
+        if n_pass == 0 and n_rej > 0:
+            self._consecutive_all_reject += 1
+        else:
+            self._consecutive_all_reject = 0
+            self._froze_warned = False
+        if (self._consecutive_all_reject >= FREEZE_WARN_TICKS
+                and not self._froze_warned):
+            self._froze_warned = True
+            self.get_logger().warn(
+                f"[FROZEN] {self.ns}: gate rejected ALL measurements for "
+                f"{self._consecutive_all_reject} ticks — estimate not updating. "
+                f"trace_P={np.trace(self.P):.6f}. Treat this run as INVALID, "
+                f"not robust. Check spawn geometry / increase R / raise χ²."
+            )
 
         self._publish_estimate()
         msg_t = Float32(); msg_t.data = float(solve_ms)

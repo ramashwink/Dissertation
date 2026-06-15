@@ -82,6 +82,10 @@ declare -A ATTACK_NODE_MAP=(
   [sybil]="sybil_registry_attack"
   [replay]="replay_attack"
   [wormhole]="wormhole_attack"
+  [sybil_consistent]="sybil_consistent_attack"
+  [replay_gradual]="replay_attack_gradual"
+  [byzantine]="byzantine_insider_attack"
+  [timesync]="timesync_attack"
 )
 
 declare -A ATTACK_ARGS=(
@@ -89,8 +93,11 @@ declare -A ATTACK_ARGS=(
   [sybil]="3"
   [replay]="delayed"
   [wormhole]="0.05"
+  [sybil_consistent]=""
+  [replay_gradual]=""
+  [byzantine]="px4_3 0.8"
+  [timesync]="ancient"
 )
-
 SCRIPT=${SCRIPT_MAP[$APPROACH]}
 ATTACK_NODE=${ATTACK_NODE_MAP[$ATTACK]}
 ATTACK_ARG=${ATTACK_ARGS[$ATTACK]}
@@ -129,6 +136,9 @@ pkill -f "extract_ground_truth" 2>/dev/null || true
 pkill -f "sybil_registry"      2>/dev/null || true
 pkill -f "replay_attack"       2>/dev/null || true
 pkill -f "wormhole_attack"     2>/dev/null || true
+pkill -f "sybil_consistent"    2>/dev/null || true
+pkill -f "byzantine_insider"   2>/dev/null || true
+pkill -f "timesync_attack"     2>/dev/null || true
 pkill -f "ekf_attack_logger"   2>/dev/null || true
 sleep 2
 echo "    Done."
@@ -256,6 +266,9 @@ pkill -f "extract_ground_truth" 2>/dev/null || true
 pkill -f "sybil_registry"      2>/dev/null || true
 pkill -f "replay_attack"       2>/dev/null || true
 pkill -f "wormhole_attack"     2>/dev/null || true
+pkill -f "sybil_consistent"    2>/dev/null || true
+pkill -f "byzantine_insider"   2>/dev/null || true
+pkill -f "timesync_attack"     2>/dev/null || true
 sleep 2
 
 # Rename metrics CSVs: {approach}_px4_N.csv → {approach}_px4_N_{attack}.csv
