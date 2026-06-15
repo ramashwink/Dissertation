@@ -18,8 +18,11 @@ Attack phases:
                             innovations grow slowly, evading chi2 threshold
   2 – SUSTAINED  (40–90s): bias held at BIAS_MAX — estimate fully corrupted
 
-Bias direction: configurable; default is +X axis (causes estimated position
-to drift east, corrupting swarm topology for cooperative tasks).
+Bias direction: configurable; default is +X/+Y axis (causes estimated
+position to drift, corrupting swarm topology for cooperative tasks).
+
+Evil drone: px4_2 (standard evil-drone convention across this attack suite)
+Honest drones: px4_1, px4_3, px4_4, px4_5
 
 Affected mitigations:
   WLS + Huber:      bias below HUBER_DELTA is not down-weighted
@@ -31,26 +34,46 @@ Affected mitigations:
 
 Run:
     ros2 run swarm_discovery byzantine_insider_attack
-    ros2 run swarm_discovery byzantine_insider_attack px4_3 0.8  # drone, bias(m)
+    ros2 run swarm_discovery byzantine_insider_attack px4_2 0.8  # drone, bias(m)
+
+Smoke test (short run, for parameter tuning):
+    SMOKE_ATTACK_SEC=20 SMOKE_WARMUP_SEC=3 SMOKE_RAMP_SEC=10 \\
+        ros2 run swarm_discovery byzantine_insider_attack px4_2 0.8
 
 STRIDE: Tampering, Elevation of Privilege
+
+PATCH NOTES (validation pass):
+  - Added _true_pos_received gate + throttled warning. Previously,
+    self._true_pos was seeded from SPAWN_POSITIONS and only updated via
+    _on_true_estimate; if the compromised drone's real coop_loc_* node was
+    not yet publishing self_estimate when the ramp/sustained phase began,
+    the "bias" was applied to a frozen spawn point rather than a live,
+    moving estimate -- silently changing the attack from "drift on a live
+    estimate" to "static fake position."
+  - Logs true_pos_received per tick so validate_attacks.py can confirm the
+    bias was applied against a live estimate for the bulk of the run.
+  - Default compromised drone changed px4_3 -> px4_2 to match the
+    standardised evil-drone convention used across the attack suite.
+  - ATTACK_SEC / WARMUP_SEC / RAMP_SEC overridable via env vars for smoke
+    testing.
 """
-import sys, csv, time
+import os, sys, csv, time
 import numpy as np
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, PointStamped
 
 # Default compromised drone (must be a real, registered drone)
-BYZANTINE_DRONE = "px4_3"
-HONEST_DRONES   = ["px4_1", "px4_2", "px4_4", "px4_5"]  # all except the compromised one
+# CHANGED: px4_3 -> px4_2 to match the standardised evil-drone convention.
+BYZANTINE_DRONE = "px4_2"
 ALL_DRONES      = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
+HONEST_DRONES   = [d for d in ALL_DRONES if d != BYZANTINE_DRONE]
 
 BIAS_MAX        = 0.8    # metres — max position bias injected
 BIAS_AXIS       = np.array([1.0, 0.5, 0.0])  # bias direction (normalised below)
-WARMUP_SEC      = 10.0
-RAMP_SEC        = 30.0   # ramp from warmup end to full bias
-ATTACK_SEC      = 90.0
+WARMUP_SEC      = float(os.environ.get("SMOKE_WARMUP_SEC", 10.0))
+RAMP_SEC        = float(os.environ.get("SMOKE_RAMP_SEC", 30.0))   # ramp duration after warmup
+ATTACK_SEC      = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
 PUBLISH_HZ      = 10.0
 LOG_FILE        = "/tmp/byzantine_insider_attack_metrics.csv"
 
@@ -75,6 +98,7 @@ class ByzantineInsiderAttack(Node):
         self.est            = {d: None for d in ALL_DRONES}
         self.gt             = {d: None for d in ALL_DRONES}
         self._true_pos      = SPAWN_POSITIONS[compromised_ns].copy()
+        self._true_pos_received = False
 
         # Subscribe to the compromised drone's real self_estimate (to add bias on top)
         self.create_subscription(
@@ -99,7 +123,8 @@ class ByzantineInsiderAttack(Node):
 
         self._csv_file = open(LOG_FILE, "w", newline="")
         self._csv = csv.writer(self._csv_file)
-        header = ["t_s", "phase", "bias_m", "bias_x", "bias_y", "bias_z"]
+        header = ["t_s", "phase", "bias_m", "bias_x", "bias_y", "bias_z",
+                  "true_pos_received"]
         for d in ALL_DRONES:
             header += [f"{d}_est_x", f"{d}_est_y", f"{d}_est_z",
                        f"{d}_gt_x",  f"{d}_gt_y",  f"{d}_gt_z",
@@ -111,11 +136,18 @@ class ByzantineInsiderAttack(Node):
         self.get_logger().warn(
             f"[BYZANTINE] Compromised drone: {compromised_ns} | "
             f"max_bias={bias_max}m direction={_BIAS_DIR.round(3)} | "
-            f"ramp={WARMUP_SEC}–{WARMUP_SEC+RAMP_SEC}s")
+            f"ramp={WARMUP_SEC:.0f}-{WARMUP_SEC+RAMP_SEC:.0f}s | "
+            f"attack_window={ATTACK_SEC:.0f}s")
 
     def _on_true_estimate(self, msg):
         self._true_pos = np.array([
             msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
+        if not self._true_pos_received:
+            self._true_pos_received = True
+            self.get_logger().info(
+                f"[BYZANTINE] First {self.compromised_ns} true self_estimate "
+                f"received: {self._true_pos.round(3)} -- bias injection now "
+                f"applies to a live estimate, not frozen spawn")
 
     def _current_bias(self, elapsed):
         if elapsed < WARMUP_SEC:
@@ -140,6 +172,18 @@ class ByzantineInsiderAttack(Node):
         else:
             phase = "sustained"
 
+        # ADDED: throttled warning if bias is ramping but we've never heard a
+        # real self_estimate -- means we're biasing a frozen spawn point, not
+        # "a drone whose live estimate drifts."
+        if phase != "warmup" and not self._true_pos_received:
+            self.get_logger().warn(
+                f"[BYZANTINE] t={elapsed:.1f}s phase={phase} but no "
+                f"{self.compromised_ns} self_estimate received yet -- "
+                f"injecting bias against frozen SPAWN_POSITIONS, not live state. "
+                f"Check coop_loc_* for {self.compromised_ns} is running.",
+                throttle_duration_sec=5.0
+            )
+
         # Publish biased estimate for the compromised drone
         biased_pos = self._true_pos + bias_vec
         msg = PoseStamped()
@@ -152,7 +196,8 @@ class ByzantineInsiderAttack(Node):
         self._biased_pub.publish(msg)
 
         row = [f"{elapsed:.3f}", phase, f"{bias_mag:.4f}",
-               f"{bias_vec[0]:.4f}", f"{bias_vec[1]:.4f}", f"{bias_vec[2]:.4f}"]
+               f"{bias_vec[0]:.4f}", f"{bias_vec[1]:.4f}", f"{bias_vec[2]:.4f}",
+               int(self._true_pos_received)]
         for drone in ALL_DRONES:
             is_comp = 1 if drone == self.compromised_ns else 0
             est, gt = self.est.get(drone), self.gt.get(drone)

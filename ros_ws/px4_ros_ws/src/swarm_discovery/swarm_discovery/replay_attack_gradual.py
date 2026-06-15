@@ -16,6 +16,9 @@ a Mahalanobis distance of ~2.8 per axis is required to trigger rejection.
 A gradual drift of ~0.01 m/s keeps innovations below this threshold for
 the first ~28 seconds — long enough to cause irreversible estimate drift.
 
+Evil drone: px4_2 (standard evil-drone convention across this attack suite)
+Honest drones: px4_1, px4_3, px4_4, px4_5
+
 Parameters:
   DRIFT_RATE   -- seconds of additional delay added per second of attack
   MAX_DELAY    -- cap on total replay delay (seconds)
@@ -24,9 +27,22 @@ Run:
     ros2 run swarm_discovery replay_attack_gradual
     ros2 run swarm_discovery replay_attack_gradual 0.05 60   # 0.05 s/s ramp, 60s cap
 
+Smoke test (short run, for parameter tuning):
+    SMOKE_ATTACK_SEC=20 SMOKE_WARMUP_SEC=3 \\
+        ros2 run swarm_discovery replay_attack_gradual 0.1 30
+
 STRIDE: Spoofing, Denial of Service (evasion variant)
+
+PATCH NOTES (validation pass):
+  - No logic change required: EVIL_DRONE already px4_2, matching the
+    standardised evil-drone convention used across the attack suite.
+  - ATTACK_SEC / WARMUP_SEC overridable via env vars for smoke testing.
+  - Validation: validate_attacks.py::check_replay_gradual confirms
+    current_delay_s actually ramps from 0 upward (monotonically) during
+    the attack phase, rather than sitting at 0 because the buffer never
+    accumulated enough history.
 """
-import sys, csv, time, collections
+import os, sys, csv, time, collections
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -39,8 +55,8 @@ ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 DRIFT_RATE    = 0.1    # seconds of delay added per second of attack
 MAX_DELAY     = 30.0   # cap — beyond this PX4 may start dropping messages
 BUFFER_SEC    = 35.0   # keep enough history for the max delay
-WARMUP_SEC    = 10.0
-ATTACK_SEC    = 90.0
+WARMUP_SEC    = float(os.environ.get("SMOKE_WARMUP_SEC", 10.0))
+ATTACK_SEC    = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
 PUBLISH_HZ    = 25.0
 LOG_FILE      = "/tmp/replay_attack_gradual_metrics.csv"
 
@@ -98,7 +114,7 @@ class GradualReplayAttack(Node):
         self.create_timer(1.0 / PUBLISH_HZ, self._tick)
         self.get_logger().warn(
             f"[GRADUAL-REPLAY] drift={drift_rate}s/s max_delay={max_delay}s "
-            f"warmup={WARMUP_SEC}s")
+            f"warmup={WARMUP_SEC}s attack_window={ATTACK_SEC:.0f}s")
 
     def _on_range(self, observer, observed, msg):
         buf = self._buffer[(observer, observed)]

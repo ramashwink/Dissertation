@@ -10,10 +10,23 @@ Run:
     ros2 run swarm_discovery wormhole_attack
     ros2 run swarm_discovery wormhole_attack 0.05   # 5% of true distance
 
+Smoke test (short run, for parameter tuning):
+    SMOKE_ATTACK_SEC=20 ros2 run swarm_discovery wormhole_attack 0.05
+
 STRIDE: Tampering, Elevation of Privilege
 Reference: Hu, Perrig & Johnson, IEEE JSAC 2006
+
+PATCH NOTES (validation pass):
+  - WARMUP_SEC raised 5.0 -> 10.0. inter_drone_ranging.py's STALE_SEC=0.5
+    gate plus ground_truth_demux startup meant the px4_1<->px4_5 range
+    pair could still be unpopulated when the attack phase began at t=5s,
+    producing a silent no-op run (true_dist_m == 0 for the whole CSV).
+  - Added a one-time loud warning if the bridged pair is still empty when
+    the attack phase starts, so a misfire is visible in the log instead of
+    only discoverable by inspecting the CSV afterwards.
+  - ATTACK_SEC / WARMUP_SEC now overridable via env vars for smoke testing.
 """
-import sys, csv, time
+import os, sys, csv, time
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -24,8 +37,11 @@ ENDPOINT_B    = "px4_5"
 HONEST_DRONES = ["px4_1", "px4_5"]
 ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 WORMHOLE_SCALE = 0.05
-WARMUP_SEC     = 5.0
-ATTACK_SEC     = 90.0
+
+# CHANGED: was 5.0. Give inter_drone_ranging.py time to establish the
+# px4_1<->px4_5 pair before the attack tries to read it.
+WARMUP_SEC     = float(os.environ.get("SMOKE_WARMUP_SEC", 10.0))
+ATTACK_SEC     = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
 PUBLISH_HZ     = 25.0
 LOG_FILE       = "/tmp/wormhole_attack_metrics.csv"
 
@@ -41,6 +57,7 @@ class WormholeAttack(Node):
         }
         self.est = {d: None for d in HONEST_DRONES}
         self.gt  = {d: None for d in ALL_DRONES}
+        self._warned_not_ready = False
 
         # Subscribe to the two bridged range topics
         self.create_subscription(PointStamped,
@@ -85,8 +102,9 @@ class WormholeAttack(Node):
 
         self.create_timer(1.0 / PUBLISH_HZ, self._tick)
         self.get_logger().warn(
-            f"[WORMHOLE] {ENDPOINT_A}↔{ENDPOINT_B} scale={scale} "
-            f"(reports {scale*100:.0f}% of true distance)")
+            f"[WORMHOLE] {ENDPOINT_A}<->{ENDPOINT_B} scale={scale} "
+            f"(reports {scale*100:.0f}% of true distance) | "
+            f"warmup={WARMUP_SEC:.0f}s attack_window={ATTACK_SEC:.0f}s")
 
     def _on_range(self, observer, observed, msg):
         self._latest[(observer, observed)] = msg
@@ -101,6 +119,20 @@ class WormholeAttack(Node):
             self.get_logger().info("[WORMHOLE] Complete.")
             self._csv_file.flush(); self._csv_file.close()
             self.destroy_node(); return
+
+        # ADDED: loud one-time warning if the bridged pair never became ready
+        if phase == "attack" and not self._warned_not_ready:
+            both_ready = (self._latest[(ENDPOINT_A, ENDPOINT_B)] is not None
+                          and self._latest[(ENDPOINT_B, ENDPOINT_A)] is not None)
+            if not both_ready:
+                self.get_logger().error(
+                    f"[WORMHOLE] WARNING: attack phase started but range pair "
+                    f"{ENDPOINT_A}<->{ENDPOINT_B} not yet populated. "
+                    f"This run may produce a no-op CSV (true_dist_m all zero). "
+                    f"Check inter_drone_ranging.py is publishing both directions, "
+                    f"or increase WARMUP_SEC."
+                )
+            self._warned_not_ready = True
 
         if phase == "attack":
             for (obs, obsd), msg in self._latest.items():

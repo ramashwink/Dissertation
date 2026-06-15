@@ -95,7 +95,7 @@ declare -A ATTACK_ARGS=(
   [wormhole]="0.05"
   [sybil_consistent]=""
   [replay_gradual]=""
-  [byzantine]="px4_3 0.8"
+  [byzantine]="px4_2 0.8"
   [timesync]="ancient"
 )
 SCRIPT=${SCRIPT_MAP[$APPROACH]}
@@ -136,7 +136,7 @@ pkill -f "extract_ground_truth" 2>/dev/null || true
 pkill -f "sybil_registry"      2>/dev/null || true
 pkill -f "replay_attack"       2>/dev/null || true
 pkill -f "wormhole_attack"     2>/dev/null || true
-pkill -f "sybil_consistent"    2>/dev/null || true
+pkill -f "sybil_consistent_attack"    2>/dev/null || true
 pkill -f "byzantine_insider"   2>/dev/null || true
 pkill -f "timesync_attack"     2>/dev/null || true
 pkill -f "ekf_attack_logger"   2>/dev/null || true
@@ -266,7 +266,7 @@ pkill -f "extract_ground_truth" 2>/dev/null || true
 pkill -f "sybil_registry"      2>/dev/null || true
 pkill -f "replay_attack"       2>/dev/null || true
 pkill -f "wormhole_attack"     2>/dev/null || true
-pkill -f "sybil_consistent"    2>/dev/null || true
+pkill -f "sybil_consistent_attack"    2>/dev/null || true
 pkill -f "byzantine_insider"   2>/dev/null || true
 pkill -f "timesync_attack"     2>/dev/null || true
 sleep 2

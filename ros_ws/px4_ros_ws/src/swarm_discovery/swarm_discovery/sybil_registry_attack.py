@@ -1,5 +1,37 @@
 #!/usr/bin/env python3
-import sys, csv, time
+"""
+Sybil / Ghost-Drone Registry Attack
+====================================
+Injects N synthetic "ghost" drone identities (ghost_1..ghost_N) into the
+swarm by publishing fake heartbeats and self_estimate poses. Under Design A
+(swarm_registry.py, no allowlist), ghosts are accepted as legitimate swarm
+members and their (fake, ramping) positions get fed to honest drones'
+cooperative localisation solvers as neighbour anchors.
+
+Evil drone: px4_2 (standard evil-drone convention across this attack suite —
+note this attack itself doesn't require px4_2 to misbehave; the ghosts are
+entirely synthetic identities injected by this external attacker node)
+Honest drones: px4_1, px4_3, px4_4, px4_5
+
+Run:
+    ros2 run swarm_discovery sybil_registry_attack
+    ros2 run swarm_discovery sybil_registry_attack 3 px4_2   # 3 ghosts
+
+Smoke test (short run, for parameter tuning):
+    SMOKE_ATTACK_SEC=20 SMOKE_RAMP_SEC=10 \\
+        ros2 run swarm_discovery sybil_registry_attack 3 px4_2
+
+STRIDE: Spoofing, Tampering
+
+PATCH NOTES (validation pass):
+  - No logic change required: EVIL_DRONE already px4_2, matching the
+    standardised evil-drone convention used across the attack suite.
+  - ATTACK_SEC / RAMP_SEC overridable via env vars for smoke testing.
+  - Validation: validate_attacks.py::check_sybil_registry confirms
+    px4_1_error_m exceeds a small threshold during the attack phase,
+    i.e. ghost positions actually perturbed the WLS/EKF solve.
+"""
+import os, sys, csv, time
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -14,8 +46,8 @@ HONEST_DRONES = ["px4_1", "px4_3", "px4_4", "px4_5"]
 ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 HEARTBEAT_HZ  = 2.0
 PUBLISH_HZ    = 10.0
-ATTACK_SEC    = 90.0
-RAMP_SEC      = 30.0
+ATTACK_SEC    = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
+RAMP_SEC      = float(os.environ.get("SMOKE_RAMP_SEC", 30.0))
 LOG_FILE      = "/tmp/sybil_registry_attack_metrics.csv"
 
 def ghost_config(n):
@@ -45,7 +77,7 @@ class SybilRegistryAttack(Node):
         for g in self.ghosts:
             ns = g["drone_ns"]
             self.est_pubs[ns] = self.create_publisher(PoseStamped, f"/{ns}/coop/self_estimate", 10)
-            self.get_logger().warn(f"[SYBIL] Ghost: {ns} → fake_pos={g['fake_pos'].round(2)}")
+            self.get_logger().warn(f"[SYBIL] Ghost: {ns} -> fake_pos={g['fake_pos'].round(2)}")
 
         for drone in ALL_DRONES:
             self.create_subscription(PoseStamped, f"/sim/ground_truth/{drone}/pose",
@@ -64,7 +96,9 @@ class SybilRegistryAttack(Node):
 
         self.create_timer(1.0 / HEARTBEAT_HZ, self._send_heartbeats)
         self.create_timer(1.0 / PUBLISH_HZ,   self._tick)
-        self.get_logger().warn(f"[SYBIL] {num_ghosts} ghosts | evil={evil_ns} | log={LOG_FILE}")
+        self.get_logger().warn(
+            f"[SYBIL] {num_ghosts} ghosts | evil={evil_ns} | "
+            f"ramp={RAMP_SEC:.0f}s attack_window={ATTACK_SEC:.0f}s | log={LOG_FILE}")
 
     def _send_heartbeats(self):
         for g in self.ghosts:

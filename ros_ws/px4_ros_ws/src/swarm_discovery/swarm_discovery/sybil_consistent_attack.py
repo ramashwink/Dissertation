@@ -22,10 +22,12 @@ Ghost measurements now have near-zero residuals and pass RANSAC inlier tests,
 Tukey weight checks, and EKF chi2 gating.
 
 Attack model:
-  - Evil drone: px4_2 (real, registered, armed)
+  - Evil drone: px4_2 (real, registered, armed) -- standard evil-drone
+    convention across this attack suite
+  - Honest drones: px4_1, px4_3, px4_4, px4_5
   - Ghosts: 3 synthetic identities (ghost_1, ghost_2, ghost_3)
   - Each ghost publishes a self_estimate at fake_pos_G
-  - px4_2 publishes range_to/ghost_N = fake_pos_G - px4_2_spawn
+  - px4_2 publishes range_to/ghost_N = fake_pos_G - px4_2_current_estimate
     (makes the pair geometrically consistent from px4_2's perspective)
   - Since px4_2 is a legitimate peer, honest drones subscribe to
     /px4_2/coop/range_to/ghost_N as a normal range source
@@ -36,10 +38,23 @@ Run:
     ros2 run swarm_discovery sybil_consistent_attack
     ros2 run swarm_discovery sybil_consistent_attack 3 px4_2
 
+Smoke test (short run, for parameter tuning):
+    SMOKE_ATTACK_SEC=20 ros2 run swarm_discovery sybil_consistent_attack 3 px4_2
+
 STRIDE: Spoofing, Tampering (advanced — defeats outlier rejection)
 Reference: Newsome et al., IPSN 2004; Douceur 2002
+
+PATCH NOTES (validation pass):
+  - Added _evil_est_received gate. Previously, dynamic_range was computed
+    against EVIL_SPAWN until the first /{evil_ns}/coop/self_estimate message
+    arrived -- meaning the "consistent" range vectors were NOT actually
+    consistent during the early ramp, partially defeating the attack's own
+    premise. Range publication now waits for a real evil_est.
+  - Logs evil_est_x/y/z and evil_est_received per tick so validate_attacks.py
+    can confirm the consistency premise held for the bulk of the run.
+  - ATTACK_SEC / RAMP_SEC overridable via env vars for smoke testing.
 """
-import sys, csv, time
+import os, sys, csv, time
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -53,8 +68,8 @@ HONEST_DRONES = ["px4_1", "px4_3", "px4_4", "px4_5"]
 ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 HEARTBEAT_HZ  = 2.0
 PUBLISH_HZ    = 10.0
-ATTACK_SEC    = 90.0
-RAMP_SEC      = 20.0
+ATTACK_SEC    = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
+RAMP_SEC      = float(os.environ.get("SMOKE_RAMP_SEC", 20.0))
 LOG_FILE      = "/tmp/sybil_consistent_attack_metrics.csv"
 
 SPAWN_POSITIONS = {
@@ -99,7 +114,8 @@ class ConsistentSybilAttack(Node):
         self.est        = {d: None for d in HONEST_DRONES}
         self.gt         = {d: None for d in ALL_DRONES}
         # Track evil drone's current estimated position (to compute dynamic ranges)
-        self._evil_est  = EVIL_SPAWN.copy()
+        self._evil_est          = EVIL_SPAWN.copy()
+        self._evil_est_received = False
 
         # Heartbeat publisher — register ghosts in the swarm registry
         self.hb_pub = self.create_publisher(SwarmMember, "/swarm/heartbeat", 10)
@@ -142,7 +158,9 @@ class ConsistentSybilAttack(Node):
 
         self._csv_file = open(LOG_FILE, "w", newline="")
         self._csv = csv.writer(self._csv_file)
-        header = ["t_s", "num_ghosts", "phase", "alpha", "attack_type"]
+        header = ["t_s", "num_ghosts", "phase", "alpha", "attack_type",
+                  "evil_est_x", "evil_est_y", "evil_est_z",
+                  "evil_est_received"]
         for d in HONEST_DRONES:
             header += [f"{d}_est_x", f"{d}_est_y", f"{d}_est_z",
                        f"{d}_gt_x",  f"{d}_gt_y",  f"{d}_gt_z",
@@ -153,11 +171,17 @@ class ConsistentSybilAttack(Node):
         self.create_timer(1.0 / PUBLISH_HZ,   self._tick)
         self.get_logger().warn(
             f"[SYBIL-CONSISTENT] {num_ghosts} ghosts with CONSISTENT range vectors | "
-            f"evil={evil_ns} | This attack defeats RANSAC inlier checks")
+            f"evil={evil_ns} | This attack defeats RANSAC inlier checks | "
+            f"ramp={RAMP_SEC:.0f}s attack_window={ATTACK_SEC:.0f}s")
 
     def _update_evil_est(self, msg):
         self._evil_est = np.array([
             msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
+        if not self._evil_est_received:
+            self._evil_est_received = True
+            self.get_logger().info(
+                f"[SYBIL-CONSISTENT] First {self.evil_ns} self_estimate received: "
+                f"{self._evil_est.round(3)} -- consistent ranges now valid")
 
     def _send_heartbeats(self):
         for g in self.ghosts:
@@ -195,10 +219,10 @@ class ConsistentSybilAttack(Node):
             est_msg.pose.orientation.w = 1.0
             self.est_pubs[g["drone_ns"]].publish(est_msg)
 
-            if phase == "attack":
-                # Publish CONSISTENT range vector from evil drone to ghost.
-                # Use the evil drone's current estimated position to compute
-                # the dynamic range vector (more realistic than fixed spawn offset).
+            # CHANGED: only publish "consistent" range once we have a real
+            # evil_est. Before that, dynamic_range would be computed against
+            # EVIL_SPAWN, which breaks the consistency premise of this attack.
+            if phase == "attack" and self._evil_est_received:
                 dynamic_range = pos - self._evil_est
                 rng_msg = PointStamped()
                 rng_msg.header.stamp    = self.get_clock().now().to_msg()
@@ -209,7 +233,9 @@ class ConsistentSybilAttack(Node):
                 self.range_pubs[g["drone_ns"]].publish(rng_msg)
 
         row = [f"{elapsed:.3f}", len(self.ghosts), phase,
-               f"{alpha:.3f}", "consistent_sybil"]
+               f"{alpha:.3f}", "consistent_sybil",
+               f"{self._evil_est[0]:.4f}", f"{self._evil_est[1]:.4f}", f"{self._evil_est[2]:.4f}",
+               int(self._evil_est_received)]
         for drone in HONEST_DRONES:
             est, gt = self.est.get(drone), self.gt.get(drone)
             if est is not None and gt is not None:
@@ -226,7 +252,7 @@ class ConsistentSybilAttack(Node):
                 est, gt = self.est.get(d), self.gt.get(d)
                 if est is not None and gt is not None:
                     self.get_logger().warn(
-                        f"[SYBIL-CONSISTENT t={elapsed:.0f}s α={alpha:.2f}] "
+                        f"[SYBIL-CONSISTENT t={elapsed:.0f}s a={alpha:.2f}] "
                         f"{d} error={np.linalg.norm(est-gt):.3f}m")
 
 

@@ -24,6 +24,9 @@ MODE C — "jitter" timestamps (JITTER):
   synchronised swarm, this causes localisation nodes to see inconsistent
   measurement ages across drones, breaking any relative-time filtering.
 
+Evil drone: px4_2 (standard evil-drone convention across this attack suite)
+Honest drones: px4_1, px4_3, px4_4, px4_5
+
 Security implication:
   This attack demonstrates that the measurement pipeline has NO freshness
   mechanism.  All six localisation approaches consume any message that
@@ -41,9 +44,21 @@ Run:
     ros2 run swarm_discovery timesync_attack future
     ros2 run swarm_discovery timesync_attack jitter
 
+Smoke test (short run, for parameter tuning):
+    SMOKE_ATTACK_SEC=20 SMOKE_WARMUP_SEC=3 \\
+        ros2 run swarm_discovery timesync_attack ancient
+
 STRIDE: Spoofing, Denial of Service
+
+PATCH NOTES (validation pass):
+  - No logic change required: EVIL_DRONE already px4_2, matching the
+    standardised evil-drone convention used across the attack suite.
+  - ATTACK_SEC / WARMUP_SEC overridable via env vars for smoke testing.
+  - Validation: validate_attacks.py::check_timesync confirms
+    injected_stamp_sec matches the expected pattern per mode (near-zero
+    for ancient, far-future epoch for future, wide spread for jitter).
 """
-import sys, csv, time, random
+import os, sys, csv, time, random
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -58,8 +73,8 @@ ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 ATTACK_MODE   = "ancient"    # ancient | future | jitter
 FUTURE_OFFSET = 30.0         # seconds into the future (mode B)
 JITTER_SEC    = 2.0          # ±seconds of timestamp noise (mode C)
-WARMUP_SEC    = 10.0
-ATTACK_SEC    = 90.0
+WARMUP_SEC    = float(os.environ.get("SMOKE_WARMUP_SEC", 10.0))
+ATTACK_SEC    = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
 PUBLISH_HZ    = 25.0
 LOG_FILE      = "/tmp/timesync_attack_metrics.csv"
 
@@ -139,7 +154,8 @@ class TimeSyncAttack(Node):
 
         self.create_timer(1.0 / PUBLISH_HZ, self._tick)
         self.get_logger().warn(
-            f"[TIMESYNC] mode={mode} warmup={WARMUP_SEC}s | "
+            f"[TIMESYNC] mode={mode} warmup={WARMUP_SEC}s "
+            f"attack_window={ATTACK_SEC:.0f}s | "
             f"This attack exploits absent freshness validation in all 6 localisation nodes")
 
     def _on_range(self, observer, observed, msg):
