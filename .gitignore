@@ -42,6 +42,6 @@ ros_ws/px4_ros_ws/install/
 ros_ws/px4_ros_ws/log/
 ros_ws/px4_ros_ws/src/px4_msgs/
 evidence/gt/
-evidence/figures/
+# evidence/figures/  # commented out -- figures now tracked for dissertation evidence
 __pycache__/
 *.pyc
