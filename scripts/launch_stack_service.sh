@@ -58,7 +58,7 @@ tmux send-keys -t $SESSION:localisation \
 # ── Window 4: Visualisation ──────────────────────────────────────────────────
 tmux new-window -t $SESSION -n viz
 tmux send-keys -t $SESSION:viz \
-  "$SRC && ros2 run swarm_discovery swarm_viz" Enter
+  "$SRC && sleep 12 && ros2 run swarm_discovery swarm_viz" Enter
 
 # ── Window 5: Attack prompt ──────────────────────────────────────────────────
 tmux new-window -t $SESSION -n attacks
