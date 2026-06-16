@@ -159,10 +159,10 @@ tmux send-keys -t $SESSION:discovery \
 tmux split-window -v -t $SESSION:discovery
 tmux send-keys -t $SESSION:discovery \
   "$SRC && sleep 4 && \
-  ros2 run swarm_discovery swarm_heartbeat px4_1 0.0 0.0 0.0 & \
-  ros2 run swarm_discovery swarm_heartbeat px4_2 2.0 0.0 0.0 & \
-  ros2 run swarm_discovery swarm_heartbeat px4_3 4.0 0.0 0.0 & \
-  ros2 run swarm_discovery swarm_heartbeat px4_4 2.0 2.0 0.0 & \
+  ros2 run swarm_discovery swarm_heartbeat px4_1 0.0 0.0 0.0 & sleep 1 && \
+  ros2 run swarm_discovery swarm_heartbeat px4_2 2.0 0.0 0.0 & sleep 1 && \
+  ros2 run swarm_discovery swarm_heartbeat px4_3 4.0 0.0 0.0 & sleep 1 && \
+  ros2 run swarm_discovery swarm_heartbeat px4_4 2.0 2.0 0.0 & sleep 1 && \
   ros2 run swarm_discovery swarm_heartbeat px4_5 4.0 2.0 0.0 & wait" Enter
 
 echo "    Sensing + discovery started."
@@ -325,5 +325,13 @@ echo "  Analyse with:"
 echo "    python3 ~/Dissertation/analyse_all_approaches.py \\"
 echo "        --drone px4_1 \\"
 echo "        --gt-csv ${GT_DIR}/gt_px4_1_${APPROACH}_${ATTACK}.csv"
+echo ""
+# Restart swarm_viz so RViz stays live between runs
+pkill -f swarm_viz 2>/dev/null || true
+sleep 2
+source /opt/ros/humble/setup.bash
+source "$HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash"
+ros2 run swarm_discovery swarm_viz > /tmp/swarm_viz.log 2>&1 &
+echo "[+] swarm_viz restarted (pid $!) — RViz2 markers resuming"
 echo ""
 echo "  Ready for next experiment."

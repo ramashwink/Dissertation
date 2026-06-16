@@ -39,10 +39,10 @@ tmux send-keys -t $SESSION:registry_svc \
 tmux new-window -t $SESSION -n clients
 tmux send-keys -t $SESSION:clients \
   "$SRC && sleep 5 && \
-  ros2 run swarm_discovery swarm_client px4_1 0.0 0.0 0.0 & \
-  ros2 run swarm_discovery swarm_client px4_2 2.0 0.0 0.0 & \
-  ros2 run swarm_discovery swarm_client px4_3 4.0 0.0 0.0 & \
-  ros2 run swarm_discovery swarm_client px4_4 2.0 2.0 0.0 & \
+  ros2 run swarm_discovery swarm_client px4_1 0.0 0.0 0.0 & sleep 1 && \
+  ros2 run swarm_discovery swarm_client px4_2 2.0 0.0 0.0 & sleep 1 && \
+  ros2 run swarm_discovery swarm_client px4_3 4.0 0.0 0.0 & sleep 1 && \
+  ros2 run swarm_discovery swarm_client px4_4 2.0 2.0 0.0 & sleep 1 && \
   ros2 run swarm_discovery swarm_client px4_5 4.0 2.0 0.0 & wait" Enter
 
 # ── Window 3: WLS localisation × 5 ──────────────────────────────────────────
