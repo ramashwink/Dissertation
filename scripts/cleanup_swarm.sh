@@ -53,7 +53,6 @@ PATTERNS=(
   "byzantine_insider_attack"
   "timesync_attack"
   "ekf_attack_logger"
-  "swarm_viz"
 )
 
 CHECK_ONLY=0
