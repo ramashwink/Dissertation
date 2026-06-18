@@ -1,7 +1,7 @@
 #!/bin/bash
 # demo.sh v2 — heartbeats launched as separate tmux windows, not splits
 
-set -e
+set +e
 
 APPROACH=${1:-wls}
 ATTACK=${2:-}
@@ -36,7 +36,7 @@ declare -A ATTACK_NODE_MAP=(
 )
 
 declare -A ATTACK_ARGS=(
-  [sybil]="3"
+  [sybil]="3 px4_2"
   [replay]="delayed"
   [wormhole]="0.05"
   [sybil_consistent]=""
@@ -50,16 +50,13 @@ if [ -z "$SCRIPT" ]; then echo "Unknown approach: $APPROACH"; exit 1; fi
 SESSION="demo"
 
 kill_demo_nodes() {
-  pkill -f "coop_loc"             2>/dev/null || true
-  pkill -f "ground_truth_demux"   2>/dev/null || true
-  pkill -f "inter_drone_ranging"  2>/dev/null || true
-  pkill -f "swarm_registry"       2>/dev/null || true
-  pkill -f "swarm_heartbeat"      2>/dev/null || true
-  pkill -f "sybil"                2>/dev/null || true
-  pkill -f "replay_attack"        2>/dev/null || true
-  pkill -f "wormhole_attack"      2>/dev/null || true
-  pkill -f "byzantine_insider"    2>/dev/null || true
-  pkill -f "timesync_attack"      2>/dev/null || true
+  MYPID=$$
+  for pattern in "coop_loc" "ground_truth_demux" "inter_drone_ranging" \
+                 "swarm_registry" "swarm_heartbeat" "sybil_registry" \
+                 "sybil_consistent" "replay_attack" "wormhole_attack" \
+                 "byzantine_insider" "timesync_attack"; do
+    pgrep -f "$pattern" | grep -v "^${MYPID}$" | xargs -r kill -15 2>/dev/null || true
+  done
 }
 
 ensure_viz() {
@@ -255,11 +252,12 @@ else
   read -r
 
   tmux kill-window -t $SESSION:attack 2>/dev/null || true
-  pkill -f "sybil"         2>/dev/null || true
-  pkill -f "replay_attack" 2>/dev/null || true
-  pkill -f "wormhole"      2>/dev/null || true
-  pkill -f "byzantine"     2>/dev/null || true
-  pkill -f "timesync"      2>/dev/null || true
+  pkill -f "sybil_registry"    2>/dev/null || true
+  pkill -f "sybil_consistent"  2>/dev/null || true
+  pkill -f "replay_attack"     2>/dev/null || true
+  pkill -f "wormhole_attack"   2>/dev/null || true
+  pkill -f "byzantine_insider" 2>/dev/null || true
+  pkill -f "timesync_attack"   2>/dev/null || true
 
   echo ""
   echo "╔══════════════════════════════════════════════════════╗"
