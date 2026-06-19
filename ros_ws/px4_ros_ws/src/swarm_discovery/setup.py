@@ -45,6 +45,8 @@ setup(
             'wormhole_attack          = swarm_discovery.wormhole_attack:main',
             'timesync_attack          = swarm_discovery.timesync_attack:main',
             'byzantine_targeted_ekf = swarm_discovery.byzantine_targeted_ekf:main',
+            'swarm_heartbeat_dynamic = swarm_discovery.swarm_heartbeat_dynamic:main',
+            'formation_flight = swarm_discovery.formation_flight:main',
             'byzantine_insider_attack = swarm_discovery.byzantine_insider_attack:main',
 
             # ── Visualisation ────────────────────────────────────────────────
