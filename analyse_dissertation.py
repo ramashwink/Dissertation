@@ -64,6 +64,9 @@ ATTACKS = [
     "sybil_consistent",
     "replay_gradual",
     "byzantine",
+    "targeted_ramp",
+    "targeted_osc",
+    "targeted_two_drone",
     "timesync",
 ]
 
@@ -75,6 +78,9 @@ ATTACK_COLORS = {
     "sybil_consistent": "#c0392b",
     "replay_gradual":   "#d35400",
     "byzantine":        "#16a085",
+    "targeted_ramp":    "#2471a3",
+    "targeted_osc":     "#1a5276",
+    "targeted_two_drone": "#154360",
     "timesync":         "#2980b9",
 }
 
@@ -86,6 +92,9 @@ ATTACK_MARKERS = {
     "sybil_consistent": "P",
     "replay_gradual":   "X",
     "byzantine":        "*",
+    "targeted_ramp":    "X",
+    "targeted_osc":     "^",
+    "targeted_two_drone": "v",
     "timesync":         "h",
 }
 

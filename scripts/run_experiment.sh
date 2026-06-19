@@ -1,37 +1,12 @@
 #!/bin/bash
-# run_experiment.sh
-# =================
-# Runs ONE complete experiment: launch stack → wait → inject attack →
-# wait → kill everything → rename CSVs with correct labels.
-#
-# Usage:
-#   bash run_experiment.sh <approach> <attack>
-#
-# Approaches:  wls | ekf | wls_huber | wls_tukey | ransac | ekf_chi2_huber
-# Attacks:     baseline | sybil | replay | wormhole
-#
-# Examples:
-#   bash run_experiment.sh wls baseline
-#   bash run_experiment.sh ekf baseline
-#   bash run_experiment.sh wls_huber sybil
-#   bash run_experiment.sh ekf_chi2_huber wormhole
-#
-# What this script does:
-#   1. Kills any leftover sessions/nodes from a previous run
-#   2. Launches the correct stack (sensing + discovery + algorithm)
-#   3. Waits WARMUP_SEC for everything to stabilise
-#   4. Starts the attack node (if attack != baseline)
-#   5. Starts ground truth logging simultaneously
-#   6. Waits EXPERIMENT_SEC for data collection
-#   7. Kills everything cleanly
-#   8. Renames CSVs from generic names to approach_drone_attack.csv
-#   9. Prints a summary of rows collected
-#
-# Prerequisites: start_swarm.sh already running in a separate terminal.
+# run_experiment.sh — PATCHED for persistent RViz demo
+# Changes vs original:
+#   1. swarm_viz excluded from ALL kill lists
+#   2. swarm_viz restarted at step 1 (before stack launches), not after teardown
+#   3. tmux kill-server replaced with targeted session kill so swarm_viz persists
 
 set -e
 
-# ── Args ─────────────────────────────────────────────────────────────────────
 APPROACH=${1:-}
 ATTACK=${2:-}
 
@@ -43,22 +18,18 @@ if [ -z "$APPROACH" ] || [ -z "$ATTACK" ]; then
   exit 1
 fi
 
-# ── Paths ────────────────────────────────────────────────────────────────────
 WS="$HOME/Dissertation/ros_ws/px4_ros_ws"
 PKG="$WS/src/swarm_discovery/swarm_discovery"
 CODE="$HOME/Dissertation/code"
 METRICS="$HOME/Dissertation/evidence/metrics"
 GT_DIR="$HOME/Dissertation/evidence/gt"
 SCRIPTS="$HOME/Dissertation/scripts"
-
 SRC="source /opt/ros/humble/setup.bash && source $WS/install/setup.bash"
 
-# ── Timing ───────────────────────────────────────────────────────────────────
-WARMUP_SEC=12      # time for sensing + discovery + algorithm to stabilise
-EXPERIMENT_SEC=90  # data collection window
-ATTACK_DELAY=5     # seconds after algorithm is stable before injecting attack
+WARMUP_SEC=12
+EXPERIMENT_SEC=90
+ATTACK_DELAY=5
 
-# ── Validate approach ────────────────────────────────────────────────────────
 declare -A SCRIPT_MAP=(
   [wls]="cooperative_localisation_dynamic.py"
   [ekf]="cooperative_localisation_ekf.py"
@@ -86,6 +57,9 @@ declare -A ATTACK_NODE_MAP=(
   [replay_gradual]="replay_attack_gradual"
   [byzantine]="byzantine_insider_attack"
   [timesync]="timesync_attack"
+  [targeted_ramp]="byzantine_targeted_ekf"
+  [targeted_osc]="byzantine_targeted_ekf"
+  [targeted_two_drone]="byzantine_targeted_ekf"
 )
 
 declare -A ATTACK_ARGS=(
@@ -97,54 +71,78 @@ declare -A ATTACK_ARGS=(
   [replay_gradual]=""
   [byzantine]="px4_2 0.8"
   [timesync]="ancient"
+  [targeted_ramp]="px4_2 targeted_ramp"
+  [targeted_osc]="px4_2 targeted_osc"
+  [targeted_two_drone]="px4_2 targeted_two_drone"
 )
+
 SCRIPT=${SCRIPT_MAP[$APPROACH]}
 ATTACK_NODE=${ATTACK_NODE_MAP[$ATTACK]}
 ATTACK_ARG=${ATTACK_ARGS[$ATTACK]}
 
 if [ -z "$SCRIPT" ]; then
-  echo "Unknown approach: '$APPROACH'"
-  echo "Choose from: ${!SCRIPT_MAP[@]}"
-  exit 1
+  echo "Unknown approach: '$APPROACH'"; exit 1
 fi
-
 if [ -z "${ATTACK_NODE_MAP[$ATTACK]+x}" ]; then
-  echo "Unknown attack: '$ATTACK'"
-  echo "Choose from: ${!ATTACK_NODE_MAP[@]}"
-  exit 1
+  echo "Unknown attack: '$ATTACK'"; exit 1
 fi
 
 SCRIPT_PATH="$PKG/$SCRIPT"
 SESSION="exp_${APPROACH}_${ATTACK}"
 
-# ── Step 0: Kill any leftover processes ──────────────────────────────────────
+# ── Helper: kill all experiment nodes but NOT swarm_viz ─────────────────────
+kill_experiment_nodes() {
+  pkill -f "coop_loc"             2>/dev/null || true
+  pkill -f "ground_truth_demux"   2>/dev/null || true
+  pkill -f "inter_drone_ranging"  2>/dev/null || true
+  pkill -f "swarm_registry"       2>/dev/null || true
+  pkill -f "swarm_heartbeat"      2>/dev/null || true
+  pkill -f "extract_ground_truth" 2>/dev/null || true
+  pkill -f "sybil_registry"       2>/dev/null || true
+  pkill -f "replay_attack"        2>/dev/null || true
+  pkill -f "wormhole_attack"      2>/dev/null || true
+  pkill -f "sybil_consistent"     2>/dev/null || true
+  pkill -f "byzantine_insider"    2>/dev/null || true
+  pkill -f "timesync_attack"      2>/dev/null || true
+  pkill -f "ekf_attack_logger"    2>/dev/null || true
+  # swarm_viz is deliberately NOT killed here
+}
+
 echo ""
 echo "════════════════════════════════════════════════════════"
 echo "  EXPERIMENT: approach=$APPROACH  attack=$ATTACK"
 echo "════════════════════════════════════════════════════════"
-echo ""
-echo "[0/6] Cleaning up leftover processes..."
 
-tmux kill-server 2>/dev/null || true
+# ── Step 0: Kill leftover experiment processes (NOT swarm_viz) ───────────────
+echo ""
+echo "[0/6] Cleaning up leftover processes (preserving swarm_viz)..."
+# Kill only the previous experiment's tmux session, not the whole server
+tmux kill-session -t "exp_"* 2>/dev/null || true
 sleep 1
-pkill -f "coop_loc"            2>/dev/null || true
-pkill -f "ground_truth_demux"  2>/dev/null || true
-pkill -f "inter_drone_ranging" 2>/dev/null || true
-pkill -f "swarm_registry"      2>/dev/null || true
-pkill -f "swarm_heartbeat"     2>/dev/null || true
-pkill -f "extract_ground_truth" 2>/dev/null || true
-pkill -f "sybil_registry"      2>/dev/null || true
-pkill -f "replay_attack"       2>/dev/null || true
-pkill -f "wormhole_attack"     2>/dev/null || true
-pkill -f "sybil_consistent_attack"    2>/dev/null || true
-pkill -f "byzantine_insider"   2>/dev/null || true
-pkill -f "timesync_attack"     2>/dev/null || true
-pkill -f "ekf_attack_logger"   2>/dev/null || true
+kill_experiment_nodes
 sleep 2
 echo "    Done."
 
-# ── Step 1: Launch sensing + discovery ───────────────────────────────────────
-echo "[1/6] Starting sensing + discovery stack..."
+# ── Step 1: Ensure swarm_viz is running before stack launches ────────────────
+echo "[1/6] Checking swarm_viz is live for RViz..."
+if ! pgrep -f "swarm_viz" > /dev/null 2>&1; then
+  echo "    swarm_viz not running — starting it now..."
+  source /opt/ros/humble/setup.bash
+  source "$WS/install/setup.bash"
+  ros2 run swarm_discovery swarm_viz > /tmp/swarm_viz.log 2>&1 &
+  VIZPID=$!
+  sleep 2
+  if kill -0 $VIZPID 2>/dev/null; then
+    echo "    swarm_viz started (pid $VIZPID)"
+  else
+    echo "    WARNING: swarm_viz failed to start — check /tmp/swarm_viz.log"
+  fi
+else
+  echo "    swarm_viz already running (pid $(pgrep -f swarm_viz)) — RViz will stay live"
+fi
+
+# ── Step 2: Launch sensing + discovery ───────────────────────────────────────
+echo "[2/6] Starting sensing + discovery stack..."
 
 tmux new-session -d -s $SESSION -x 220 -y 50 -n sensing
 tmux send-keys -t $SESSION:sensing \
@@ -167,15 +165,13 @@ tmux send-keys -t $SESSION:discovery \
 
 echo "    Sensing + discovery started."
 
-# ── Step 2: Launch localisation algorithm ────────────────────────────────────
-echo "[2/6] Starting localisation algorithm: $APPROACH..."
+# ── Step 3: Launch localisation algorithm ────────────────────────────────────
+echo "[3/6] Starting localisation algorithm: $APPROACH..."
 
 tmux new-window -t $SESSION -n algorithm
-
 ROS2_NODE=${ROS2_NODE_MAP[$APPROACH]}
 
 if [ -n "$ROS2_NODE" ]; then
-  # WLS and EKF have ros2 run entry points
   tmux send-keys -t $SESSION:algorithm \
     "$SRC && sleep 6 && \
     ros2 run swarm_discovery ${ROS2_NODE} px4_1 & \
@@ -184,7 +180,6 @@ if [ -n "$ROS2_NODE" ]; then
     ros2 run swarm_discovery ${ROS2_NODE} px4_4 & \
     ros2 run swarm_discovery ${ROS2_NODE} px4_5 & wait" Enter
 else
-  # Mitigation algorithms run as direct python scripts
   tmux send-keys -t $SESSION:algorithm \
     "export COOP_ATTACK_LABEL=$ATTACK && $SRC && sleep 6 && \
     python3 $SCRIPT_PATH px4_1 & \
@@ -196,10 +191,9 @@ fi
 
 echo "    Algorithm started. Waiting ${WARMUP_SEC}s for stabilisation..."
 
-# ── Step 2b: Launch CSV logger for WLS/EKF (no built-in logging) ─────────────
 if [ "$APPROACH" = "wls" ] || [ "$APPROACH" = "ekf" ]; then
-  echo "[2b] Starting external CSV logger for $APPROACH..."
-  LOGGER_PATH="$HOME/Dissertation/ros_ws/px4_ros_ws/src/swarm_discovery/swarm_discovery/coop_loc_logger.py"
+  echo "[3b] Starting external CSV logger for $APPROACH..."
+  LOGGER_PATH="$WS/src/swarm_discovery/swarm_discovery/coop_loc_logger.py"
   tmux new-window -t $SESSION -n logger
   tmux send-keys -t $SESSION:logger \
     "$SRC && sleep 7 && \
@@ -208,78 +202,57 @@ if [ "$APPROACH" = "wls" ] || [ "$APPROACH" = "ekf" ]; then
     python3 $LOGGER_PATH $APPROACH px4_3 & \
     python3 $LOGGER_PATH $APPROACH px4_4 & \
     python3 $LOGGER_PATH $APPROACH px4_5 & wait" Enter
-  echo "    CSV logger started."
 fi
+
 sleep $WARMUP_SEC
 
-# ── Step 3: Start ground truth logger ────────────────────────────────────────
-echo "[3/6] Starting ground truth logger..."
-
+# ── Step 4: Start ground truth logger ────────────────────────────────────────
+echo "[4/6] Starting ground truth logger..."
 tmux new-window -t $SESSION -n gt_logger
 tmux send-keys -t $SESSION:gt_logger \
   "$SRC && python3 ~/Dissertation/extract_ground_truth.py" Enter
-
 sleep 2
-echo "    GT logger started."
 
-# ── Step 4: Inject attack (if not baseline) ──────────────────────────────────
+# ── Step 5: Inject attack ────────────────────────────────────────────────────
 if [ -n "$ATTACK_NODE" ]; then
-  echo "[4/6] Injecting attack: $ATTACK (waiting ${ATTACK_DELAY}s first)..."
+  echo "[5/6] Injecting attack: $ATTACK (waiting ${ATTACK_DELAY}s first)..."
   sleep $ATTACK_DELAY
-
   tmux new-window -t $SESSION -n attack
   tmux send-keys -t $SESSION:attack \
     "$SRC && ros2 run swarm_discovery ${ATTACK_NODE} ${ATTACK_ARG}" Enter
-
   echo "    Attack '$ATTACK' running."
 else
-  echo "[4/6] No attack (baseline run)."
+  echo "[5/6] No attack (baseline run)."
 fi
 
-# ── Step 5: Collect data ─────────────────────────────────────────────────────
-echo "[5/6] Collecting data for ${EXPERIMENT_SEC}s..."
-echo "      tmux attach -t $SESSION  (to watch live, Ctrl-B D to detach)"
+# ── Step 6: Collect data ─────────────────────────────────────────────────────
+echo "[6/6] Collecting data for ${EXPERIMENT_SEC}s..."
+echo "      tmux attach -t $SESSION  (to watch live)"
 echo ""
 
-# Progress bar
 for i in $(seq 1 $EXPERIMENT_SEC); do
   sleep 1
   if [ $((i % 10)) -eq 0 ]; then
-    # Show live CSV row counts
     ROWS=$(wc -l $METRICS/${APPROACH}_px4_1*.csv 2>/dev/null | tail -1 | awk '{print $1}')
     echo "      t=${i}s  rows written so far: ${ROWS:-0}"
   fi
 done
 
-# ── Step 6: Kill everything and rename CSVs ──────────────────────────────────
+# ── Teardown: kill only the experiment session, swarm_viz stays ──────────────
 echo ""
-echo "[6/6] Stopping experiment and renaming CSVs..."
-
+echo "[*] Stopping experiment (swarm_viz preserved)..."
 tmux kill-session -t $SESSION 2>/dev/null || true
 sleep 2
-pkill -f "coop_loc"            2>/dev/null || true
-pkill -f "ground_truth_demux"  2>/dev/null || true
-pkill -f "inter_drone_ranging" 2>/dev/null || true
-pkill -f "swarm_registry"      2>/dev/null || true
-pkill -f "swarm_heartbeat"     2>/dev/null || true
-pkill -f "extract_ground_truth" 2>/dev/null || true
-pkill -f "sybil_registry"      2>/dev/null || true
-pkill -f "replay_attack"       2>/dev/null || true
-pkill -f "wormhole_attack"     2>/dev/null || true
-pkill -f "sybil_consistent_attack"    2>/dev/null || true
-pkill -f "byzantine_insider"   2>/dev/null || true
-pkill -f "timesync_attack"     2>/dev/null || true
+kill_experiment_nodes
 sleep 2
 
-# Rename metrics CSVs: {approach}_px4_N.csv → {approach}_px4_N_{attack}.csv
-# (baseline runs keep the plain name for backwards compat with analyser)
+# ── Rename CSVs ──────────────────────────────────────────────────────────────
 mkdir -p $METRICS
-
 RENAMED=0
 for i in 1 2 3 4 5; do
   SRC_CSV="$METRICS/${APPROACH}_px4_${i}.csv"
   if [ "$ATTACK" = "baseline" ]; then
-    DST_CSV="$SRC_CSV"   # keep as-is for baseline
+    DST_CSV="$SRC_CSV"
   else
     DST_CSV="$METRICS/${APPROACH}_px4_${i}_${ATTACK}.csv"
     if [ -f "$SRC_CSV" ]; then
@@ -289,7 +262,6 @@ for i in 1 2 3 4 5; do
   fi
 done
 
-# Copy GT CSV with experiment label
 for i in 1 2 3 4 5; do
   GT_SRC="$GT_DIR/gt_px4_${i}.csv"
   GT_DST="$GT_DIR/gt_px4_${i}_${APPROACH}_${ATTACK}.csv"
@@ -314,24 +286,12 @@ for i in 1 2 3 4 5; do
     ROWS=$(wc -l < "$F")
     echo "    px4_${i}: $ROWS rows  →  $(basename $F)"
   else
-    echo "    px4_${i}: FILE NOT FOUND — check algorithm started correctly"
+    echo "    px4_${i}: FILE NOT FOUND"
   fi
 done
 
 echo ""
-echo "  GT files: ${GT_DIR}/gt_px4_N_${APPROACH}_${ATTACK}.csv"
-echo ""
-echo "  Analyse with:"
-echo "    python3 ~/Dissertation/analyse_all_approaches.py \\"
-echo "        --drone px4_1 \\"
-echo "        --gt-csv ${GT_DIR}/gt_px4_1_${APPROACH}_${ATTACK}.csv"
-echo ""
-# Restart swarm_viz so RViz stays live between runs
-pkill -f swarm_viz 2>/dev/null || true
-sleep 2
-source /opt/ros/humble/setup.bash
-source "$HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash"
-ros2 run swarm_discovery swarm_viz > /tmp/swarm_viz.log 2>&1 &
-echo "[+] swarm_viz restarted (pid $!) — RViz2 markers resuming"
+echo "  swarm_viz still running: pid=$(pgrep -f swarm_viz || echo 'NOT FOUND — restart manually')"
+echo "  RViz2 markers should still be live."
 echo ""
 echo "  Ready for next experiment."

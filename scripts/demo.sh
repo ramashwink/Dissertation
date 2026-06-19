@@ -33,6 +33,7 @@ declare -A ATTACK_NODE_MAP=(
   [replay_gradual]="replay_attack_gradual"
   [byzantine]="byzantine_insider_attack"
   [timesync]="timesync_attack"
+  [targeted_ramp]="byzantine_targeted_ekf"
 )
 
 declare -A ATTACK_ARGS=(
@@ -43,6 +44,7 @@ declare -A ATTACK_ARGS=(
   [replay_gradual]=""
   [byzantine]="px4_2 0.8"
   [timesync]="ancient"
+  [targeted_ramp]="px4_2 targeted_ramp"
 )
 
 SCRIPT=${SCRIPT_MAP[$APPROACH]}
