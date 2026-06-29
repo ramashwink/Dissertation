@@ -50,17 +50,10 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PointStamped, PoseStamped
 from std_msgs.msg import Float32
+from swarm_discovery.swarm_config import DRONES, SPAWN_POSITIONS
 
 # ── Swarm configuration ──────────────────────────────────────────────────────
-DRONES = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 
-SPAWN_POSITIONS = {
-    "px4_1": np.array([0.0,  0.0, 0.0]),
-    "px4_2": np.array([2.0,  0.0, 0.0]),
-    "px4_3": np.array([4.0,  0.0, 0.0]),
-    "px4_4": np.array([2.0,  2.0, 0.0]),
-    "px4_5": np.array([4.0,  2.0, 0.0]),
-}
 
 PUBLISH_HZ         = 10.0
 PROCESS_NOISE_STD  = 0.01   # metres per tick (random walk)

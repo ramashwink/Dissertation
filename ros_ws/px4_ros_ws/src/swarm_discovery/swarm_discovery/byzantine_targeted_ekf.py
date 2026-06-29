@@ -32,6 +32,7 @@ import os, sys, math, time, csv
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
+from swarm_discovery.swarm_config import DRONES, SPAWN_POSITIONS
 
 # ── Target parameters (from coop_loc_ekf_chi2_huber.py source) ───────────────
 CHI2_THRESHOLD  = 7.815   # χ²(3 dof, p=0.95)
@@ -62,13 +63,6 @@ MODE        = sys.argv[2] if len(sys.argv) > 2 else "targeted_ramp"
 HONEST_DRONES = ["px4_1", "px4_3", "px4_4", "px4_5"]
 ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 
-SPAWN_POSITIONS = {
-    "px4_1": [0.0, 0.0, 0.0],
-    "px4_2": [2.0, 0.0, 0.0],
-    "px4_3": [4.0, 0.0, 0.0],
-    "px4_4": [2.0, 2.0, 0.0],
-    "px4_5": [4.0, 2.0, 0.0],
-}
 
 
 class TargetedEKFAttack(Node):

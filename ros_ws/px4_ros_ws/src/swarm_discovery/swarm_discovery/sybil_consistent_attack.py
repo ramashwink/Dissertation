@@ -61,6 +61,7 @@ from rclpy.node import Node
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped, PointStamped
 from swarm_msgs.msg import SwarmMember
+from swarm_discovery.swarm_config import DRONES, SPAWN_POSITIONS
 
 NUM_GHOSTS    = 3
 EVIL_DRONE    = "px4_2"
@@ -72,13 +73,6 @@ ATTACK_SEC    = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
 RAMP_SEC      = float(os.environ.get("SMOKE_RAMP_SEC", 20.0))
 LOG_FILE      = "/tmp/sybil_consistent_attack_metrics.csv"
 
-SPAWN_POSITIONS = {
-    "px4_1": np.array([0.0, 0.0, 0.0]),
-    "px4_2": np.array([2.0, 0.0, 0.0]),
-    "px4_3": np.array([4.0, 0.0, 0.0]),
-    "px4_4": np.array([2.0, 2.0, 0.0]),
-    "px4_5": np.array([4.0, 2.0, 0.0]),
-}
 EVIL_SPAWN = SPAWN_POSITIONS[EVIL_DRONE]
 
 

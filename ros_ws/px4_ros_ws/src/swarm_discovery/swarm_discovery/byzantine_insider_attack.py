@@ -62,6 +62,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, PointStamped
+from swarm_discovery.swarm_config import DRONES, SPAWN_POSITIONS
 
 # Default compromised drone (must be a real, registered drone)
 # CHANGED: px4_3 -> px4_2 to match the standardised evil-drone convention.
@@ -77,13 +78,6 @@ ATTACK_SEC      = float(os.environ.get("SMOKE_ATTACK_SEC", 90.0))
 PUBLISH_HZ      = 10.0
 LOG_FILE        = "/tmp/byzantine_insider_attack_metrics.csv"
 
-SPAWN_POSITIONS = {
-    "px4_1": np.array([0.0, 0.0, 0.0]),
-    "px4_2": np.array([2.0, 0.0, 0.0]),
-    "px4_3": np.array([4.0, 0.0, 0.0]),
-    "px4_4": np.array([2.0, 2.0, 0.0]),
-    "px4_5": np.array([4.0, 2.0, 0.0]),
-}
 
 _BIAS_DIR = BIAS_AXIS / np.linalg.norm(BIAS_AXIS)
 

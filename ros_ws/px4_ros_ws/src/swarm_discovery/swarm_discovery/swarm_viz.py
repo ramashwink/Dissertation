@@ -39,6 +39,12 @@ import time
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, Point
+from px4_msgs.msg import VehicleOdometry
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
+_QOS_PX4 = QoSProfile(
+    reliability=ReliabilityPolicy.BEST_EFFORT,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST, depth=5)
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import ColorRGBA, Header
 from swarm_msgs.msg import SwarmRegistry
@@ -95,10 +101,10 @@ class SwarmViz(Node):
         # ── Subscribe: ground truth ───────────────────────────────────
         for drone in ALL_DRONES:
             self.create_subscription(
-                PoseStamped,
-                f"/sim/ground_truth/{drone}/pose",
-                lambda msg, d=drone: self._on_gt(d, msg),
-                10,
+                VehicleOdometry,
+                f"/{drone}/fmu/out/vehicle_odometry",
+                lambda msg, d=drone: self._on_gt_odom(d, msg),
+                _QOS_PX4,
             )
 
         # ── Subscribe: WLS estimates ──────────────────────────────────
@@ -136,12 +142,13 @@ class SwarmViz(Node):
         )
 
     # ── Callbacks ──────────────────────────────────────────────────────
-    def _on_gt(self, drone, msg):
-        self.gt[drone] = (
-            msg.pose.position.x,
-            msg.pose.position.y,
-            msg.pose.position.z,
-        )
+
+    def _on_gt_odom(self, drone, msg):
+        pos = list(msg.position)
+        if len(pos) < 3 or any(math.isnan(v) or math.isinf(v) for v in pos[:3]):
+            return
+        # NED: x=North, y=East, z=Down — convert to ENU for RViz world frame
+        self.gt[drone] = (float(pos[1]), float(pos[0]), float(-pos[2]))
 
     def _on_est(self, drone, msg):
         self.est[drone] = (
