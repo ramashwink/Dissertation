@@ -138,12 +138,15 @@ class FormationFlight(Node):
             self._send_mode(drone)
             self._send_sp(drone, x, y, z)
 
-        if self._counter == 30:   # 3s: switch to offboard + arm
-            for drone in self.drones:
+        # Stagger arm commands — one drone per tick from counter 30-34
+        if 30 <= self._counter <= 34:
+            idx = self._counter - 30
+            if idx < len(self.drones):
+                drone = self.drones[idx]
                 self._send_cmd(drone, VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
-                time.sleep(0.05)
+                time.sleep(0.1)
                 self._send_cmd(drone, VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
-            self.get_logger().info("[FORMATION] ARM + OFFBOARD sent to all drones")
+                self.get_logger().info(f"[FORMATION] ARM + OFFBOARD sent to {drone}")
 
         if self._counter % 50 == 0:
             ox, oy = SPAWN["px4_1"]

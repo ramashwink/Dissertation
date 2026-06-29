@@ -11,7 +11,7 @@
 |---|---|---|
 | Drone position | Fixed at spawn grid | Flying pattern (hover/square/circle) |
 | Heartbeats | Fixed spawn coords | Live GT position (`swarm_heartbeat_dynamic`) |
-| QGC | Not needed | Monitor via ports 18570–18574 |
+| QGC | Not needed | Monitor via ports 18571–18575 |
 | Warmup | 12s | 25s (arm + climb to altitude) |
 | CSV location | `evidence/metrics/` | `evidence/metrics/motion/` |
 | CSV naming | `{approach}_px4_N_{attack}.csv` | `{approach}_px4_N_{attack}_{pattern}.csv` |
@@ -25,7 +25,7 @@
 bash ~/Dissertation/scripts/start_swarm.sh
 
 # Terminal 2 — QGC (optional, for monitoring)
-# Connect to UDP 18570, 18571, 18572, 18573, 18574
+# Connect to UDP 18571, 18572, 18573, 18574, 18575
 # Watch drones arm and fly when formation_flight starts
 
 # Terminal 3 — RViz (leave open)
@@ -108,13 +108,13 @@ Each demo: stack launches → drones arm and fly → press Enter to inject → p
 
 | Drone | MAVLink UDP port |
 |---|---|
-| px4_1 | 18570 |
-| px4_2 | 18571 |
-| px4_3 | 18572 |
-| px4_4 | 18573 |
-| px4_5 | 18574 |
+| px4_1 | 18571 |
+| px4_2 | 18572 |
+| px4_3 | 18573 |
+| px4_4 | 18574 |
+| px4_5 | 18575 |
 
-Connect QGC to `localhost:18570` to monitor px4_1. You can open multiple QGC instances or use the multi-vehicle view.
+Connect QGC to `localhost:18571` to monitor px4_1. You can open multiple QGC instances or use the multi-vehicle view.
 
 ---
 

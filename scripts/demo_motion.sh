@@ -131,7 +131,7 @@ done
 echo "[4/6] Starting formation flight (pattern=$PATTERN)..."
 tmux new-window -t $SESSION -n flight
 tmux send-keys -t $SESSION:flight "$SRC && ros2 run swarm_discovery formation_flight $PATTERN" Enter
-echo "  Monitor drones in QGC (ports 18570-18574)"
+echo "  Monitor drones in QGC (ports 18571-18575)"
 echo "  Waiting 25s for drones to arm and reach altitude..."
 sleep 25
 

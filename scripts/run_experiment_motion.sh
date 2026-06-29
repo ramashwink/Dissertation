@@ -28,8 +28,8 @@
 #   bash run_experiment_motion.sh ransac byzantine circle
 #
 # QGC monitoring ports:
-#   px4_1: 18570   px4_2: 18571   px4_3: 18572
-#   px4_4: 18573   px4_5: 18574
+#   px4_1: 18571   px4_2: 18572   px4_3: 18573
+#   px4_4: 18574   px4_5: 18575
 #
 # Prerequisites:
 #   start_swarm.sh must already be running.
@@ -193,7 +193,7 @@ tmux send-keys -t $SESSION:flight \
   "$SRC && ros2 run swarm_discovery formation_flight $PATTERN" Enter
 
 echo "  Waiting ${ALTITUDE_WAIT}s for drones to arm and reach altitude..."
-echo "  Monitor in QGC: ports 18570-18574"
+echo "  Monitor in QGC: ports 18571-18575"
 sleep $ALTITUDE_WAIT
 
 # ── Step 5: Localisation ─────────────────────────────────────────────────────
