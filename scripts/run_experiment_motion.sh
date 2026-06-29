@@ -198,6 +198,26 @@ sleep $ALTITUDE_WAIT
 
 # ── Step 5: Localisation ─────────────────────────────────────────────────────
 echo "[5/7] Starting localisation: $APPROACH..."
+  # Clear stale CSVs to prevent rename collision
+  for i in 1 2 3 4 5; do rm -f $HOME/Dissertation/evidence/metrics/${APPROACH}_px4_${i}.csv; done
+  echo "  Stale CSVs cleared."
+
+  # RC2 fix: wait for ranging to be flowing before launching localisation
+  echo "  Waiting for ranging data on all drones..."
+  source /opt/ros/humble/setup.bash
+  source "$WS/install/setup.bash"
+  for drone in px4_1 px4_2 px4_3 px4_4 px4_5; do
+    nbr="px4_2"; [ "$drone" = "px4_2" ] && nbr="px4_1"
+    topic="/${drone}/coop/range_to/${nbr}"
+    for attempt in $(seq 1 30); do
+      if ros2 topic echo "$topic" --once --no-arr > /dev/null 2>&1; then
+        echo "    ${drone}: ranging ✓"
+        break
+      fi
+      sleep 1
+    done
+  done
+
 tmux new-window -t $SESSION -n algorithm
 ROS2_NODE=${ROS2_NODE_MAP[$APPROACH]}
 
