@@ -132,8 +132,8 @@ class CoopLocEKFChi2Huber(Node):
             msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
 
     def _tick(self):
-        if any(self.latest_range_vec[n] is None for n in self.neighbours):
-            return
+        if all(self.latest_range_vec[n] is None for n in self.neighbours):
+            return  # no data yet — wait for first ranging message
 
         t_start = time.perf_counter()
         n_pass, n_rej = self._ekf_update()
@@ -186,6 +186,9 @@ class CoopLocEKFChi2Huber(Node):
 
         # ── Sequential update per neighbour ──────────────────────────────────
         for nbr in self.neighbours:
+            if self.latest_range_vec[nbr] is None:
+                n_rej += 1
+                continue  # ranging not yet available for this neighbour
             p_nbr = self.latest_neighbour_pos[nbr]   # neighbour's position
             z     = self.latest_range_vec[nbr]        # observed relative vector
 
