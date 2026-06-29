@@ -63,7 +63,7 @@ mkdir -p $METRICS $GT_DIR
 WARMUP_SEC=25      # longer — drones need to arm + reach altitude
 EXPERIMENT_SEC=90
 ATTACK_DELAY=8
-ALTITUDE_WAIT=20   # wait for drones to reach ALT before logging
+ALTITUDE_WAIT=30   # wait for drones to reach ALT before logging
 
 declare -A SCRIPT_MAP=(
   [wls]="cooperative_localisation_dynamic.py"
@@ -257,7 +257,7 @@ echo "[7/7] Collecting data for ${EXPERIMENT_SEC}s..."
 for i in $(seq 1 $EXPERIMENT_SEC); do
   sleep 1
   if [ $((i % 15)) -eq 0 ]; then
-    ROWS=$(wc -l $METRICS/../${APPROACH}_px4_1*.csv 2>/dev/null | \
+    ROWS=$(wc -l $METRICS/${APPROACH}_px4_1_*_${PATTERN}.csv 2>/dev/null | \
            tail -1 | awk '{print $1}' || echo 0)
     echo "  t=${i}s  rows: ${ROWS:-0}"
   fi

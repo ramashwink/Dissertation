@@ -92,5 +92,8 @@ echo "  Logs: tail -f /tmp/px4_1.log"
 echo "  Next: python3 ~/Dissertation/scripts/arm_all_drones.py"
 echo "════════════════════════════════════════════════════"
 
+# Set RC failsafe params on all drones
+python3 ~/Dissertation/scripts/set_rc_params.py
+
 trap "kill $PID_1 $PID_2 $PID_3 $PID_4 $PID_5 $XRCE_PID 2>/dev/null" EXIT
 wait

@@ -64,8 +64,8 @@ SPAWN_POSITIONS = {
 
 PUBLISH_HZ         = 10.0
 PROCESS_NOISE_STD  = 0.01   # metres per tick (random walk)
-MEAS_NOISE_STD     = 0.20   # PATCH: was 0.05; R = 0.04 m² (realistic LiDAR coop noise)
-CHI2_THRESHOLD     = 7.815  # χ²(3 dof, p=0.95) — correct for 3-dof measurement
+MEAS_NOISE_STD     = float(os.environ.get("COOP_MEAS_NOISE_STD", "0.20"))   # PATCH: was 0.05; R = 0.04 m² (realistic LiDAR coop noise)
+CHI2_THRESHOLD     = float(os.environ.get("COOP_CHI2_THRESHOLD", "7.815"))  # χ²(3 dof, p=0.95) — correct for 3-dof measurement
 HUBER_DELTA        = 0.5    # metres — Huber threshold for accepted measurements
 
 # Freeze guard: if every gated measurement is rejected for this many

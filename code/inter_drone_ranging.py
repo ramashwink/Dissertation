@@ -35,7 +35,15 @@ import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped, PointStamped
+from geometry_msgs.msg import PointStamped
+from px4_msgs.msg import VehicleOdometry
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
+
+QOS_PX4 = QoSProfile(
+    reliability=ReliabilityPolicy.BEST_EFFORT,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=5)
 
 
 # ----- Configuration -----
@@ -62,12 +70,12 @@ class InterDroneRanging(Node):
         self._latest_time = {d: None for d in DRONES}
 
         for drone in DRONES:
-            topic = f"/sim/ground_truth/{drone}/pose"
+            topic = f"/{drone}/fmu/out/vehicle_odometry"
             self.create_subscription(
-                PoseStamped,
+                VehicleOdometry,
                 topic,
-                lambda msg, d=drone: self._on_pose(d, msg),
-                10,
+                lambda msg, d=drone: self._on_odom(d, msg),
+                QOS_PX4,
             )
             self.get_logger().info(f"subscribed to {topic}")
 
@@ -92,12 +100,12 @@ class InterDroneRanging(Node):
         )
 
     # ------------------------------------------------------------------
-    def _on_pose(self, drone, msg):
-        self._latest[drone] = np.array([
-            msg.pose.position.x,
-            msg.pose.position.y,
-            msg.pose.position.z,
-        ])
+    def _on_odom(self, drone, msg):
+        import math
+        pos = list(msg.position)  # NED [x, y, z]
+        if len(pos) < 3 or any(math.isnan(v) or math.isinf(v) for v in pos[:3]):
+            return
+        self._latest[drone] = np.array([float(pos[0]), float(pos[1]), float(pos[2])])
         self._latest_time[drone] = time.monotonic()
 
     # ------------------------------------------------------------------
