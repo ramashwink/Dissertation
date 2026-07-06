@@ -26,9 +26,13 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy
-from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand, VehicleStatus
 
 PATTERN = sys.argv[1] if len(sys.argv) > 1 else "hover"
+
+ARM_START_SEC   = 3.0    # wait for setpoint stream to establish before arming
+ARM_RETRY_SEC   = 2.0    # resend SET_MODE+ARM this often until confirmed
+ARM_TIMEOUT_SEC = 20.0   # give up and log a failure after this long
 
 ALT    = -5.0     # NED: negative = up
 SPEED  = 1.5      # m/s approx
@@ -49,6 +53,12 @@ QOS = QoSProfile(
     history=HistoryPolicy.KEEP_LAST,
     depth=1)
 
+STATUS_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.BEST_EFFORT,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=5)
+
 
 class FormationFlight(Node):
     def __init__(self):
@@ -58,6 +68,12 @@ class FormationFlight(Node):
         self._sp      = {}
         self._cmd     = {}
         self._counter = 0
+
+        self._armed             = {d: False for d in self.drones}
+        self._offboard          = {d: False for d in self.drones}
+        self._last_arm_try      = {d: -999.0 for d in self.drones}
+        self._arm_failed_logged = {d: False for d in self.drones}
+        self._ready_logged      = {d: False for d in self.drones}
 
         for drone in self.drones:
             self._mode[drone] = self.create_publisher(
@@ -69,6 +85,10 @@ class FormationFlight(Node):
             self._cmd[drone] = self.create_publisher(
                 VehicleCommand,
                 f"/{drone}/fmu/in/vehicle_command", QOS)
+            self.create_subscription(
+                VehicleStatus,
+                f"/{drone}/fmu/out/vehicle_status_v4",
+                lambda msg, d=drone: self._on_status(d, msg), STATUS_QOS)
 
         self.t_start = time.monotonic()
         self.create_timer(0.1, self._tick)   # 10 Hz
@@ -78,6 +98,10 @@ class FormationFlight(Node):
 
     def _now_us(self):
         return int(self.get_clock().now().nanoseconds / 1000)
+
+    def _on_status(self, drone, msg):
+        self._armed[drone]    = (msg.arming_state == VehicleStatus.ARMING_STATE_ARMED)
+        self._offboard[drone] = (msg.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD)
 
     def _send_mode(self, drone):
         msg           = OffboardControlMode()
@@ -138,15 +162,34 @@ class FormationFlight(Node):
             self._send_mode(drone)
             self._send_sp(drone, x, y, z)
 
-        # Stagger arm commands — one drone per tick from counter 30-34
-        if 30 <= self._counter <= 34:
-            idx = self._counter - 30
-            if idx < len(self.drones):
-                drone = self.drones[idx]
+        # Retry ARM + OFFBOARD per drone until vehicle_status confirms both —
+        # a single fire-and-forget attempt silently leaves a drone grounded
+        # for the whole run if it's missed (pre-arm check race, dropped
+        # command, etc.), with nothing in the logs to show it happened.
+        if elapsed >= ARM_START_SEC:
+            for drone in self.drones:
+                if self._armed[drone] and self._offboard[drone]:
+                    continue
+                if elapsed - self._last_arm_try[drone] < ARM_RETRY_SEC:
+                    continue
+                if elapsed - ARM_START_SEC > ARM_TIMEOUT_SEC:
+                    if not self._arm_failed_logged[drone]:
+                        self.get_logger().error(
+                            f"[FORMATION] {drone} FAILED to reach ARMED+OFFBOARD "
+                            f"after {ARM_TIMEOUT_SEC:.0f}s (armed={self._armed[drone]}, "
+                            f"offboard={self._offboard[drone]}) — giving up")
+                        self._arm_failed_logged[drone] = True
+                    continue
+
+                self._last_arm_try[drone] = elapsed
                 self._send_cmd(drone, VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
-                time.sleep(0.1)
                 self._send_cmd(drone, VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
-                self.get_logger().info(f"[FORMATION] ARM + OFFBOARD sent to {drone}")
+                self.get_logger().info(f"[FORMATION] ARM + OFFBOARD sent to {drone} (t={elapsed:.1f}s)")
+
+            for d in self.drones:
+                if self._armed[d] and self._offboard[d] and not self._ready_logged[d]:
+                    self._ready_logged[d] = True
+                    self.get_logger().info(f"[FORMATION] {d} confirmed ARMED+OFFBOARD (t={elapsed:.1f}s)")
 
         if self._counter % 50 == 0:
             ox, oy = SPAWN["px4_1"]

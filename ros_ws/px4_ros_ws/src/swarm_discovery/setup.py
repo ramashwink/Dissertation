@@ -51,6 +51,9 @@ setup(
 
             # ── Visualisation ────────────────────────────────────────────────
             'swarm_viz                = swarm_discovery.swarm_viz:main',
+
+            # ── Sim maintenance ──────────────────────────────────────────────
+            'reset_swarm_poses        = swarm_discovery.reset_swarm_poses:main',
         ],
     },
 )

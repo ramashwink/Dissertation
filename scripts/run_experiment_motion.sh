@@ -141,14 +141,22 @@ kill_motion_nodes
 sleep 2
 echo "  Done."
 
+# Gazebo runs for the whole batch — PX4 land/disarm never moves the model
+# pose back to its grid spawn. A drone that crashed/drifted in an earlier
+# run would otherwise stay displaced for every run after it.
+echo "  Resetting drone poses to grid spawn..."
+source /opt/ros/humble/setup.bash
+source "$WS/install/setup.bash"
+ros2 run swarm_discovery reset_swarm_poses
+
 # ── Step 1: Ensure swarm_viz ─────────────────────────────────────────────────
 echo "[1/7] Checking swarm_viz..."
-if ! pgrep -f "swarm_viz" > /dev/null 2>&1; then
+if ! pgrep -f "swarm_discovery.*swarm_viz" > /dev/null 2>&1; then
   source /opt/ros/humble/setup.bash
   source "$WS/install/setup.bash"
   ros2 run swarm_discovery swarm_viz > /tmp/swarm_viz.log 2>&1 &
   sleep 2
-  echo "  swarm_viz started (pid $(pgrep -f swarm_viz))"
+  echo "  swarm_viz started (pid $(pgrep -f "swarm_discovery.*swarm_viz"))"
 else
   echo "  swarm_viz already running ✓"
 fi
@@ -324,5 +332,5 @@ echo ""
 echo "════════════════════════════════════════════════════════════"
 echo "  DONE: $APPROACH / $ATTACK / $PATTERN"
 echo "  CSVs: $METRICS/"
-echo "  swarm_viz: pid=$(pgrep -f swarm_viz || echo 'not running')"
+echo "  swarm_viz: pid=$(pgrep -f "swarm_discovery.*swarm_viz" || echo 'not running')"
 echo "════════════════════════════════════════════════════════════"

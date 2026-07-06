@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -8,6 +9,12 @@ from scipy.optimize import least_squares
 from swarm_msgs.msg import SwarmRegistry, SwarmMember
 
 PUBLISH_HZ = 10.0
+
+# Matches swarm_registry.py's MEMBER_TIMEOUT_SEC. A neighbour is only pruned
+# once it has been absent from the registry for this long — a single missed
+# snapshot (registry publishes at 2Hz) must not drop it, or WLS solving stalls
+# every time membership churns for even one cycle.
+MEMBER_MISSING_GRACE_SEC = 10.0
 
 class DynamicCooperativeLocalisation(Node):
     def __init__(self, drone_ns):
@@ -18,6 +25,7 @@ class DynamicCooperativeLocalisation(Node):
         self._est_subs           = {}
         self._latest_range_vec   = {}
         self._latest_neighbour_pos = {}
+        self._last_seen          = {}   # namespace -> monotonic time last seen in registry
         self._estimate           = np.array([0.0, 0.0, 0.0])
         self._own_spawn_known    = False
         self._iteration          = 0
@@ -32,6 +40,7 @@ class DynamicCooperativeLocalisation(Node):
         if msg.sybil_suspect_count > 0:
             self.get_logger().warn(f"[COOP-DYN] Registry reports {msg.sybil_suspect_count} Sybil suspect(s)")
 
+        now = time.monotonic()
         for ns, member in incoming.items():
             if ns == self.ns:
                 if not self._own_spawn_known:
@@ -39,10 +48,13 @@ class DynamicCooperativeLocalisation(Node):
                     self._own_spawn_known = True
                     self.get_logger().info(f"[COOP-DYN] Own spawn from registry: {self._estimate}")
                 continue
+            self._last_seen[ns] = now
             if ns not in self._known_members:
                 self._add_neighbour(ns, member)
 
-        for ns in [ns for ns in self._known_members if ns not in incoming]:
+        stale = [ns for ns in self._known_members
+                 if now - self._last_seen.get(ns, now) > MEMBER_MISSING_GRACE_SEC]
+        for ns in stale:
             self._remove_neighbour(ns)
 
     def _add_neighbour(self, ns, member):
@@ -67,6 +79,7 @@ class DynamicCooperativeLocalisation(Node):
         del self._known_members[ns]
         self._latest_range_vec.pop(ns, None)
         self._latest_neighbour_pos.pop(ns, None)
+        self._last_seen.pop(ns, None)
         for d, topic in [(self._range_subs, f"/{self.ns}/coop/range_to/{ns}"),
                          (self._est_subs,   f"/{ns}/coop/self_estimate")]:
             if topic in d:

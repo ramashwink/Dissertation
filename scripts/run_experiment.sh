@@ -125,7 +125,7 @@ echo "    Done."
 
 # ── Step 1: Ensure swarm_viz is running before stack launches ────────────────
 echo "[1/6] Checking swarm_viz is live for RViz..."
-if ! pgrep -f "swarm_viz" > /dev/null 2>&1; then
+if ! pgrep -f "swarm_discovery.*swarm_viz" > /dev/null 2>&1; then
   echo "    swarm_viz not running — starting it now..."
   source /opt/ros/humble/setup.bash
   source "$WS/install/setup.bash"
@@ -138,7 +138,7 @@ if ! pgrep -f "swarm_viz" > /dev/null 2>&1; then
     echo "    WARNING: swarm_viz failed to start — check /tmp/swarm_viz.log"
   fi
 else
-  echo "    swarm_viz already running (pid $(pgrep -f swarm_viz)) — RViz will stay live"
+  echo "    swarm_viz already running (pid $(pgrep -f "swarm_discovery.*swarm_viz")) — RViz will stay live"
 fi
 
 # ── Step 2: Launch sensing + discovery ───────────────────────────────────────
@@ -291,7 +291,7 @@ for i in 1 2 3 4 5; do
 done
 
 echo ""
-echo "  swarm_viz still running: pid=$(pgrep -f swarm_viz || echo 'NOT FOUND — restart manually')"
+echo "  swarm_viz still running: pid=$(pgrep -f "swarm_discovery.*swarm_viz" || echo 'NOT FOUND — restart manually')"
 echo "  RViz2 markers should still be live."
 echo ""
 echo "  Ready for next experiment."

@@ -94,10 +94,10 @@ sleep 1; kill_motion_nodes; sleep 2
 echo "  Done."
 
 echo "[2/6] Ensuring swarm_viz is live..."
-if ! pgrep -f "swarm_viz" > /dev/null 2>&1; then
+if ! pgrep -f "swarm_discovery.*swarm_viz" > /dev/null 2>&1; then
   source /opt/ros/humble/setup.bash; source "$WS/install/setup.bash"
   ros2 run swarm_discovery swarm_viz > /tmp/swarm_viz.log 2>&1 &
-  sleep 2; echo "  Started (pid $(pgrep -f swarm_viz))"
+  sleep 2; echo "  Started (pid $(pgrep -f "swarm_discovery.*swarm_viz"))"
 else
   echo "  Already running ✓"
 fi
@@ -211,5 +211,5 @@ echo "  Shutting down (swarm_viz stays alive)..."
 tmux kill-session -t $SESSION 2>/dev/null || true
 sleep 1; kill_motion_nodes
 echo ""
-echo "  Motion demo complete. swarm_viz: pid=$(pgrep -f swarm_viz || echo 'not running')"
+echo "  Motion demo complete. swarm_viz: pid=$(pgrep -f "swarm_discovery.*swarm_viz" || echo 'not running')"
 echo ""

@@ -62,7 +62,7 @@ kill_demo_nodes() {
 }
 
 ensure_viz() {
-  if ! pgrep -f "swarm_viz" > /dev/null 2>&1; then
+  if ! pgrep -f "swarm_discovery.*swarm_viz" > /dev/null 2>&1; then
     echo "  [viz] Starting swarm_viz..."
     source /opt/ros/humble/setup.bash
     source "$WS/install/setup.bash"
