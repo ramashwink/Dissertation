@@ -45,3 +45,5 @@ evidence/gt/
 # evidence/figures/  # commented out -- figures now tracked for dissertation evidence
 __pycache__/
 *.pyc
+.scannerwork/
+*.rviz
