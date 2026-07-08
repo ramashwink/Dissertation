@@ -21,6 +21,7 @@ QGC connection ports (for monitoring):
     px4_4: 18573   px4_5: 18574
 """
 import sys
+import os
 import math
 import time
 import rclpy
@@ -33,6 +34,12 @@ PATTERN = sys.argv[1] if len(sys.argv) > 1 else "hover"
 ARM_START_SEC   = 3.0    # wait for setpoint stream to establish before arming
 ARM_RETRY_SEC   = 2.0    # resend SET_MODE+ARM this often until confirmed
 ARM_TIMEOUT_SEC = 20.0   # give up and log a failure after this long
+
+# Cheap file-based readiness signal for run_experiment_motion.sh to poll —
+# spinning up `ros2 topic echo` repeatedly from bash costs a fresh DDS
+# participant discovery each call, which adds CPU load right when the
+# drones are already struggling to arm under a heavily oversubscribed CPU.
+READY_MARKER = "/tmp/formation_flight_all_ready"
 
 ALT    = -5.0     # NED: negative = up
 SPEED  = 1.5      # m/s approx
@@ -89,6 +96,11 @@ class FormationFlight(Node):
                 VehicleStatus,
                 f"/{drone}/fmu/out/vehicle_status_v4",
                 lambda msg, d=drone: self._on_status(d, msg), STATUS_QOS)
+
+        try:
+            os.remove(READY_MARKER)
+        except FileNotFoundError:
+            pass
 
         self.t_start = time.monotonic()
         self.create_timer(0.1, self._tick)   # 10 Hz
@@ -162,24 +174,26 @@ class FormationFlight(Node):
             self._send_mode(drone)
             self._send_sp(drone, x, y, z)
 
-        # Retry ARM + OFFBOARD per drone until vehicle_status confirms both —
-        # a single fire-and-forget attempt silently leaves a drone grounded
-        # for the whole run if it's missed (pre-arm check race, dropped
-        # command, etc.), with nothing in the logs to show it happened.
+        # Retry ARM + OFFBOARD per drone until vehicle_status confirms both.
+        # PX4 can drop out of OFFBOARD on its own (offboard-loss failsafe if
+        # the setpoint stream stalls even briefly, e.g. under CPU load from
+        # running 5 SITL instances + Gazebo at once) — so this never
+        # permanently gives up, it just keeps re-arming for the whole flight
+        # and logs periodically (not once) while a drone is stuck.
         if elapsed >= ARM_START_SEC:
             for drone in self.drones:
                 if self._armed[drone] and self._offboard[drone]:
+                    self._arm_failed_logged[drone] = False
                     continue
                 if elapsed - self._last_arm_try[drone] < ARM_RETRY_SEC:
                     continue
-                if elapsed - ARM_START_SEC > ARM_TIMEOUT_SEC:
-                    if not self._arm_failed_logged[drone]:
-                        self.get_logger().error(
-                            f"[FORMATION] {drone} FAILED to reach ARMED+OFFBOARD "
-                            f"after {ARM_TIMEOUT_SEC:.0f}s (armed={self._armed[drone]}, "
-                            f"offboard={self._offboard[drone]}) — giving up")
-                        self._arm_failed_logged[drone] = True
-                    continue
+
+                if elapsed - ARM_START_SEC > ARM_TIMEOUT_SEC and not self._arm_failed_logged[drone]:
+                    self.get_logger().error(
+                        f"[FORMATION] {drone} still not ARMED+OFFBOARD "
+                        f"after {elapsed - ARM_START_SEC:.0f}s (armed={self._armed[drone]}, "
+                        f"offboard={self._offboard[drone]}) — retrying")
+                    self._arm_failed_logged[drone] = True
 
                 self._last_arm_try[drone] = elapsed
                 self._send_cmd(drone, VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
@@ -190,6 +204,16 @@ class FormationFlight(Node):
                 if self._armed[d] and self._offboard[d] and not self._ready_logged[d]:
                     self._ready_logged[d] = True
                     self.get_logger().info(f"[FORMATION] {d} confirmed ARMED+OFFBOARD (t={elapsed:.1f}s)")
+                elif not (self._armed[d] and self._offboard[d]):
+                    self._ready_logged[d] = False
+
+            all_ready = all(self._armed[d] and self._offboard[d] for d in self.drones)
+            if all_ready and not os.path.exists(READY_MARKER):
+                with open(READY_MARKER, "w") as f:
+                    f.write(f"{elapsed:.1f}\n")
+                self.get_logger().info(f"[FORMATION] all 5 drones ARMED+OFFBOARD (t={elapsed:.1f}s)")
+            elif not all_ready and os.path.exists(READY_MARKER):
+                os.remove(READY_MARKER)
 
         if self._counter % 50 == 0:
             ox, oy = SPAWN["px4_1"]

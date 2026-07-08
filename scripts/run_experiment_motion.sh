@@ -63,7 +63,7 @@ mkdir -p $METRICS $GT_DIR
 WARMUP_SEC=25      # longer — drones need to arm + reach altitude
 EXPERIMENT_SEC=90
 ATTACK_DELAY=8
-ALTITUDE_WAIT=30   # wait for drones to reach ALT before logging
+ALTITUDE_WAIT=60   # max wait for drones to reach OFFBOARD before logging (polled, not fixed)
 
 declare -A SCRIPT_MAP=(
   [wls]="cooperative_localisation_dynamic.py"
@@ -200,9 +200,29 @@ tmux new-window -t $SESSION -n flight
 tmux send-keys -t $SESSION:flight \
   "$SRC && ros2 run swarm_discovery formation_flight $PATTERN" Enter
 
-echo "  Waiting ${ALTITUDE_WAIT}s for drones to arm and reach altitude..."
+echo "  Waiting for all drones to reach OFFBOARD (max ${ALTITUDE_WAIT}s)..."
 echo "  Monitor in QGC: ports 18571-18575"
-sleep $ALTITUDE_WAIT
+source /opt/ros/humble/setup.bash
+source "$WS/install/setup.bash"
+# Poll formation_flight's own readiness marker file instead of a fixed
+# sleep or repeated `ros2 topic echo` calls — each of those spins up a
+# fresh DDS participant, which adds real CPU load right when the drones
+# are already struggling to arm under a heavily oversubscribed CPU.
+READY_MARKER="/tmp/formation_flight_all_ready"
+rm -f "$READY_MARKER"
+SECONDS=0
+while [ $SECONDS -lt $ALTITUDE_WAIT ]; do
+  if [ -f "$READY_MARKER" ]; then
+    echo "  All 5 drones reached OFFBOARD after ${SECONDS}s."
+    break
+  fi
+  sleep 1
+done
+if [ ! -f "$READY_MARKER" ]; then
+  echo "  WARNING: drones not all OFFBOARD after ${SECONDS}s — proceeding anyway."
+fi
+echo "  Waiting 10s buffer for altitude climb..."
+sleep 10
 
 # ── Step 5: Localisation ─────────────────────────────────────────────────────
 echo "[5/7] Starting localisation: $APPROACH..."
@@ -285,8 +305,7 @@ echo "[7/7] Collecting data for ${EXPERIMENT_SEC}s..."
 for i in $(seq 1 $EXPERIMENT_SEC); do
   sleep 1
   if [ $((i % 15)) -eq 0 ]; then
-    ROWS=$(wc -l $METRICS/${APPROACH}_px4_1_*_${PATTERN}.csv 2>/dev/null | \
-           tail -1 | awk '{print $1}' || echo 0)
+    ROWS=$(wc -l < "$HOME/Dissertation/evidence/metrics/${APPROACH}_px4_1.csv" 2>/dev/null || echo 0)
     echo "  t=${i}s  rows: ${ROWS:-0}"
   fi
 done

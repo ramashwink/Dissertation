@@ -99,6 +99,53 @@ swarm_alive() {
   [ "${count}" -ge 5 ]
 }
 
+# gz sim's Ruby launcher has been observed to crash (SIGABRT) under sustained
+# load, killing the physics server while PX4/DDS stay up — swarm_alive() alone
+# won't catch that until topics drop out. Full cleanup + relaunch recovers it.
+MAX_TOTAL_RESTARTS=60
+RESTART_COUNT=0
+
+restart_swarm() {
+  RESTART_COUNT=$(( RESTART_COUNT + 1 ))
+  if [ "$RESTART_COUNT" -gt "$MAX_TOTAL_RESTARTS" ]; then
+    log "  [restart] Exceeded ${MAX_TOTAL_RESTARTS} total restarts — something is"
+    log "  [restart] fundamentally broken. Refusing to restart again."
+    return 1
+  fi
+
+  log "  [restart] (${RESTART_COUNT}/${MAX_TOTAL_RESTARTS}) Killing stale processes..."
+  tmux kill-server 2>/dev/null || true
+  pkill -9 -f "bin/px4" 2>/dev/null || true
+  pkill -9 -f "MicroXRCEAgent" 2>/dev/null || true
+  pkill -9 -f "gz sim" 2>/dev/null || true
+  pkill -9 -f "swarm_viz" 2>/dev/null || true
+  pkill -9 -f "formation_flight" 2>/dev/null || true
+  pkill -9 -f "coop_loc" 2>/dev/null || true
+  pkill -9 -f "ground_truth_demux" 2>/dev/null || true
+  pkill -9 -f "inter_drone_ranging" 2>/dev/null || true
+  pkill -9 -f "swarm_registry" 2>/dev/null || true
+  pkill -9 -f "swarm_heartbeat" 2>/dev/null || true
+  sleep 3
+  rm -rf /tmp/px4_* /tmp/px4-sock-* /tmp/px4_lock-* 2>/dev/null
+
+  local restart_log="/tmp/swarm_restart_$(date +%s).log"
+  log "  [restart] Launching start_swarm_motion.sh (log: $restart_log)..."
+  nohup bash "$SCRIPTS/start_swarm_motion.sh" > "$restart_log" 2>&1 &
+
+  local waited=0
+  while [ "$waited" -lt 150 ]; do
+    if grep -q "RC-PARAMS\] Done" "$restart_log" 2>/dev/null; then
+      log "  [restart] Swarm ready after ${waited}s."
+      return 0
+    fi
+    sleep 3
+    waited=$(( waited + 3 ))
+  done
+
+  log "  [restart] TIMEOUT waiting for swarm to become ready (${restart_log})."
+  return 1
+}
+
 # ── Pre-flight check ──────────────────────────────────────────────────────────
 
 log ""
@@ -149,31 +196,60 @@ for PATTERN in "${PATTERNS[@]}"; do
         continue
       fi
 
-      # Swarm health check before each run
-      if ! swarm_alive; then
-        log "  ERROR: Swarm died before run ${RUN_NUM}. Aborting batch."
-        log "  Restart swarm then re-run — completed runs will be skipped."
+      # Full swarm restart before every run. Gazebo pose-teleport alone
+      # (reset_swarm_poses) doesn't reset PX4's own EKF/control state, so a
+      # drone that drifted during a previous run keeps fighting the physical
+      # teleport in the next one — a fresh PX4+Gazebo boot is the only way to
+      # guarantee both correct spawn pose and a clean flight-control state.
+      log "  Restarting swarm for a clean run..."
+      if ! restart_swarm; then
+        log "  ERROR: Swarm restart failed. Aborting batch."
         RESULT[$KEY]="fail"
         FAILED=$(( FAILED + 1 ))
         break 3
       fi
 
-      # Run the experiment
-      log "  → RUNNING..."
-      bash "$SCRIPTS/run_experiment_motion.sh" "$APPROACH" "$ATTACK" "$PATTERN" \
-        >> "$LOGFILE" 2>&1
-      EXIT_CODE=$?
+      # Run the experiment — retry once if the swarm crashes mid-run
+      COMBO_STATUS="fail"
+      for ATTEMPT in 1 2; do
+        log "  → RUNNING (attempt ${ATTEMPT})..."
+        bash "$SCRIPTS/run_experiment_motion.sh" "$APPROACH" "$ATTACK" "$PATTERN" \
+          >> "$LOGFILE" 2>&1
+        EXIT_CODE=$?
 
-      # Validate output
-      if [ $EXIT_CODE -eq 0 ] && all_csvs_exist "$APPROACH" "$ATTACK" "$PATTERN"; then
+        if [ $EXIT_CODE -eq 0 ] && all_csvs_exist "$APPROACH" "$ATTACK" "$PATTERN"; then
+          COMBO_STATUS="pass"
+          break
+        fi
+
+        if ! swarm_alive; then
+          log "  Swarm died mid-run (attempt ${ATTEMPT}) — auto-restarting..."
+          if ! restart_swarm; then
+            log "  ERROR: Swarm auto-restart failed after mid-run crash."
+            break
+          fi
+          log "  Swarm restarted — retrying this combination."
+        else
+          log "  Run failed but swarm still alive — not a crash, not retrying."
+          break
+        fi
+      done
+
+      if [ "$COMBO_STATUS" = "pass" ]; then
         log "  → PASS"
         RESULT[$KEY]="pass"
         PASSED=$(( PASSED + 1 ))
       else
-        log "  → FAIL (exit=$EXIT_CODE — see $LOGFILE)"
+        log "  → FAIL (see $LOGFILE)"
         RESULT[$KEY]="fail"
         FAILED=$(( FAILED + 1 ))
       fi
+
+      # PX4 console logs in /tmp grow fast under retry/failsafe spam (observed
+      # ~30MB/min) — truncate in place between runs to keep disk usage bounded
+      # over a long unattended batch. Safe on an open fd: writes continue from
+      # the process's current offset, the file just becomes sparse up to there.
+      truncate -s 0 /tmp/px4_1.log /tmp/px4_2.log /tmp/px4_3.log /tmp/px4_4.log /tmp/px4_5.log 2>/dev/null || true
 
       # Let drones settle before next run
       log "  Settling 20s..."

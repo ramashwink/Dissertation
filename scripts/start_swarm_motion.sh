@@ -25,12 +25,13 @@ sleep 2
 
 cd "$PX4"
 
-echo "[*] Spawning px4_1 at (0,0) — owns Gazebo..."
+echo "[*] Spawning px4_1 at (0,0) — owns Gazebo (headless, no GUI client)..."
+HEADLESS=1 \
 PX4_SYS_AUTOSTART=4001 \
 PX4_SIM_MODEL=gz_x500 \
 PX4_UXRCE_DDS_NS=px4_1 \
     ./build/px4_sitl_default/bin/px4 -i 1 \
-    > /tmp/px4_1.log 2>&1 &
+    < <(sleep infinity) > /tmp/px4_1.log 2>&1 &
 PID_1=$!
 
 echo "[*] Waiting 20s for Gazebo..."
@@ -43,7 +44,7 @@ PX4_GZ_MODEL_POSE="2,0" \
 PX4_SIM_MODEL=gz_x500 \
 PX4_UXRCE_DDS_NS=px4_2 \
     ./build/px4_sitl_default/bin/px4 -i 2 \
-    > /tmp/px4_2.log 2>&1 &
+    < <(sleep infinity) > /tmp/px4_2.log 2>&1 &
 PID_2=$!
 sleep 5
 
@@ -54,7 +55,7 @@ PX4_GZ_MODEL_POSE="4,0" \
 PX4_SIM_MODEL=gz_x500 \
 PX4_UXRCE_DDS_NS=px4_3 \
     ./build/px4_sitl_default/bin/px4 -i 3 \
-    > /tmp/px4_3.log 2>&1 &
+    < <(sleep infinity) > /tmp/px4_3.log 2>&1 &
 PID_3=$!
 sleep 5
 
@@ -65,7 +66,7 @@ PX4_GZ_MODEL_POSE="2,2" \
 PX4_SIM_MODEL=gz_x500 \
 PX4_UXRCE_DDS_NS=px4_4 \
     ./build/px4_sitl_default/bin/px4 -i 4 \
-    > /tmp/px4_4.log 2>&1 &
+    < <(sleep infinity) > /tmp/px4_4.log 2>&1 &
 PID_4=$!
 sleep 5
 
@@ -76,7 +77,7 @@ PX4_GZ_MODEL_POSE="4,2" \
 PX4_SIM_MODEL=gz_x500 \
 PX4_UXRCE_DDS_NS=px4_5 \
     ./build/px4_sitl_default/bin/px4 -i 5 \
-    > /tmp/px4_5.log 2>&1 &
+    < <(sleep infinity) > /tmp/px4_5.log 2>&1 &
 PID_5=$!
 
 echo "[+] PIDs: $PID_1 $PID_2 $PID_3 $PID_4 $PID_5"

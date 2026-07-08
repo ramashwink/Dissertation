@@ -1,0 +1,67 @@
+approach,attack,pattern,mean_err_m,peak_err_m,rmse_m,std_m,mean_solve_ms
+WLS,baseline,hover,9.1647,12.2666,9.3985,2.0833,0.000
+WLS,sybil,hover,3.2301,6.6312,3.4089,1.0895,0.000
+WLS,replay,hover,7.0090,18.5916,8.9220,5.5205,0.000
+WLS,wormhole,hover,7.7267,11.4819,8.0596,2.2925,0.000
+WLS,sybil_consistent,hover,11.7707,15.1866,12.9329,5.3582,0.000
+WLS,replay_gradual,hover,4.5974,8.7785,4.7906,1.3466,0.000
+WLS,byzantine,hover,35.1732,46.3772,35.8824,7.0989,0.000
+WLS,timesync,hover,5.7043,8.1380,5.9875,1.8196,0.000
+WLS,targeted_ramp,hover,3.3365,4.8945,3.4103,0.7058,0.000
+WLS,targeted_osc,hover,5.3157,8.4448,5.9866,2.7537,0.000
+WLS,targeted_two_drone,hover,3.6488,8.8916,4.0615,1.7839,0.000
+EKF,baseline,hover,4.1372,20.3323,8.0889,6.9508,0.000
+EKF,sybil,hover,472.8804,642.3933,522.3816,221.9611,0.000
+EKF,replay,hover,3.9921,10.4968,4.7393,2.5543,0.000
+EKF,wormhole,hover,7.7967,9.4745,8.0430,1.9751,0.000
+EKF,sybil_consistent,hover,10.0148,25.0527,11.7328,6.1126,0.000
+EKF,replay_gradual,hover,1.7876,6.6949,2.6612,1.9714,0.000
+EKF,byzantine,hover,3.8163,10.2191,4.9242,3.1119,0.000
+EKF,timesync,hover,6.7852,21.4016,7.5794,3.3777,0.000
+EKF,targeted_ramp,hover,1.5907,10.4397,3.2647,2.8509,0.000
+EKF,targeted_osc,hover,2.0136,10.9560,3.9053,3.3461,0.000
+EKF,targeted_two_drone,hover,11.7347,76.2023,20.5839,16.9113,0.000
+WLS + Huber,baseline,hover,4.8759,6.2921,4.9858,1.0408,1.663
+WLS + Huber,sybil,hover,7.7367,9.8374,7.8777,1.4838,1.836
+WLS + Huber,replay,hover,6.4491,9.5474,7.0027,2.7287,2.315
+WLS + Huber,wormhole,hover,8.1131,10.3489,8.3815,2.1042,2.073
+WLS + Huber,sybil_consistent,hover,,,,,0.852
+WLS + Huber,replay_gradual,hover,7.3021,12.2726,7.4803,1.6230,1.396
+WLS + Huber,byzantine,hover,6.3540,9.8066,6.6207,1.8601,2.305
+WLS + Huber,timesync,hover,5.8731,9.7528,6.1431,1.8013,2.312
+WLS + Huber,targeted_ramp,hover,32.9953,62.3821,37.0548,16.8633,0.799
+WLS + Huber,targeted_osc,hover,8.2628,10.7633,8.3316,1.0681,1.488
+WLS + Huber,targeted_two_drone,hover,6.6625,9.9592,6.9386,1.9379,1.457
+WLS + Tukey,baseline,hover,6.8482,11.0346,7.2767,2.4602,2.744
+WLS + Tukey,sybil,hover,8.9198,10.7543,9.0308,1.4113,2.459
+WLS + Tukey,replay,hover,4.9137,9.7086,5.4332,2.3184,2.375
+WLS + Tukey,wormhole,hover,7.0176,9.9083,7.3172,2.0721,2.577
+WLS + Tukey,sybil_consistent,hover,6.0811,9.2503,6.4395,2.1181,2.616
+WLS + Tukey,replay_gradual,hover,8.0893,17.6324,8.2631,1.6858,2.679
+WLS + Tukey,byzantine,hover,6.7930,7.8258,6.8301,0.7113,2.813
+WLS + Tukey,timesync,hover,7.7476,10.2028,8.0588,2.2179,2.632
+WLS + Tukey,targeted_ramp,hover,5.3993,10.0008,5.5248,1.1709,2.649
+WLS + Tukey,targeted_osc,hover,10.3416,10.8137,10.3489,0.3893,2.307
+WLS + Tukey,targeted_two_drone,hover,7.1396,10.4408,7.1750,0.7110,1.231
+RANSAC,baseline,hover,3.8537,9.8355,3.9439,0.8389,9.270
+RANSAC,sybil,hover,9.2444,11.9668,9.3987,1.6956,9.841
+RANSAC,replay,hover,6.0163,10.1216,6.1577,1.3123,9.396
+RANSAC,wormhole,hover,8.2044,11.5970,8.5450,2.3886,10.212
+RANSAC,sybil_consistent,hover,9.8690,11.9639,9.8903,0.6482,8.755
+RANSAC,replay_gradual,hover,10.0799,16.8227,10.1605,1.2774,10.571
+RANSAC,byzantine,hover,9.8748,12.7670,9.9980,1.5642,11.058
+RANSAC,timesync,hover,7.2748,11.1184,7.6532,2.3769,10.985
+RANSAC,targeted_ramp,hover,10.0540,25.0195,10.2612,2.0517,9.796
+RANSAC,targeted_osc,hover,19.4051,78.0077,25.4648,16.4894,9.427
+RANSAC,targeted_two_drone,hover,6.4959,17.0115,6.6374,1.3636,10.558
+EKF+chi2+Huber *,baseline,hover,5.4327,5.9045,5.4738,0.6692,0.407
+EKF+chi2+Huber *,sybil,hover,4.9223,5.0912,4.9268,0.2117,0.480
+EKF+chi2+Huber *,replay,hover,5.0432,5.2351,5.0461,0.1711,0.424
+EKF+chi2+Huber *,wormhole,hover,3.9584,5.1957,4.5046,2.1500,0.416
+EKF+chi2+Huber *,sybil_consistent,hover,3.9025,5.1041,4.3807,1.9902,0.396
+EKF+chi2+Huber *,replay_gradual,hover,4.9279,5.0087,4.9289,0.0997,0.448
+EKF+chi2+Huber *,byzantine,hover,5.1050,5.1083,5.1050,0.0240,0.228
+EKF+chi2+Huber *,timesync,hover,3.8150,5.0706,4.3454,2.0803,0.431
+EKF+chi2+Huber *,targeted_ramp,hover,3.7882,6.9404,4.0008,1.2867,0.470
+EKF+chi2+Huber *,targeted_osc,hover,5.2922,5.4078,5.2934,0.1135,0.491
+EKF+chi2+Huber *,targeted_two_drone,hover,4.8954,5.0267,4.8955,0.0375,0.357

@@ -17,6 +17,12 @@ PARAMS = [
     (b'COM_RCL_EXCEPT',  31,  6),   # RC loss ignored in all modes
     (b'GF_ACTION',       0,   6),   # Geofence breach: none
     (b'COM_RC_LOSS_T',   10,  9),   # RC loss timeout: 10s (float)
+    (b'NAV_DLL_ACT',     0,   6),   # Datalink loss action: none — no GCS required to arm
+    (b'COM_LOW_BAT_ACT', 0,   6),   # Low battery action: warning only — no RTL/land during long batches
+    (b'SIM_BAT_DRAIN',   0,   9),   # Disable SITL battery simulator entirely (float; 0 = module doesn't start)
+    (b'COM_OF_LOSS_T',   5.0, 9),   # Offboard-loss timeout: 5s (default 1s) — tolerate setpoint-stream
+                                    # gaps during heavy multi-instance boot CPU/DDS contention instead
+                                    # of failsafe-switching to Position mode mid-arm.
 ]
 
 print("[RC-PARAMS] Connecting to all 5 drones...")
