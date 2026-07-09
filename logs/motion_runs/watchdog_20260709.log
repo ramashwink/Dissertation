@@ -1,0 +1,3 @@
+[12:23:12] Watchdog started. Watching /tmp/run_all_motion_clean2.log (stall threshold 480s)
+[13:49:36] BATCH COMPLETE detected. Watchdog exiting cleanly.
+[13:49:36] Watchdog stopped.
