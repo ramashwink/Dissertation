@@ -56,7 +56,10 @@ PKG="$WS/src/swarm_discovery/swarm_discovery"
 CODE="$HOME/Dissertation/code"
 METRICS="$HOME/Dissertation/evidence/metrics/motion"
 GT_DIR="$HOME/Dissertation/evidence/gt/motion"
-SRC="source /opt/ros/humble/setup.bash && source $WS/install/setup.bash"
+# WSL2 doesn't reliably support IPv4 multicast, which Fast-DDS needs for its
+# default SPDP discovery. Point every node at the Fast-DDS discovery server
+# (started in start_swarm_motion.sh) instead — no multicast involved.
+SRC="source /opt/ros/humble/setup.bash && source $WS/install/setup.bash && export ROS_DISCOVERY_SERVER=127.0.0.1:11811"
 
 mkdir -p $METRICS $GT_DIR
 
@@ -147,6 +150,7 @@ echo "  Done."
 echo "  Resetting drone poses to grid spawn..."
 source /opt/ros/humble/setup.bash
 source "$WS/install/setup.bash"
+export ROS_DISCOVERY_SERVER="127.0.0.1:11811"
 ros2 run swarm_discovery reset_swarm_poses
 
 # ── Step 1: Ensure swarm_viz ─────────────────────────────────────────────────
@@ -154,6 +158,7 @@ echo "[1/7] Checking swarm_viz..."
 if ! pgrep -f "swarm_discovery.*swarm_viz" > /dev/null 2>&1; then
   source /opt/ros/humble/setup.bash
   source "$WS/install/setup.bash"
+  export ROS_DISCOVERY_SERVER="127.0.0.1:11811"
   ros2 run swarm_discovery swarm_viz > /tmp/swarm_viz.log 2>&1 &
   sleep 2
   echo "  swarm_viz started (pid $(pgrep -f "swarm_discovery.*swarm_viz"))"
@@ -204,23 +209,43 @@ echo "  Waiting for all drones to reach OFFBOARD (max ${ALTITUDE_WAIT}s)..."
 echo "  Monitor in QGC: ports 18571-18575"
 source /opt/ros/humble/setup.bash
 source "$WS/install/setup.bash"
+export ROS_DISCOVERY_SERVER="127.0.0.1:11811"
 # Poll formation_flight's own readiness marker file instead of a fixed
 # sleep or repeated `ros2 topic echo` calls — each of those spins up a
 # fresh DDS participant, which adds real CPU load right when the drones
 # are already struggling to arm under a heavily oversubscribed CPU.
 READY_MARKER="/tmp/formation_flight_all_ready"
-rm -f "$READY_MARKER"
-SECONDS=0
-while [ $SECONDS -lt $ALTITUDE_WAIT ]; do
+
+# A drone whose uXRCE-DDS bridge comes up slightly later than the others
+# (usually the last-spawned one) can end up with a stale pub/sub match to
+# formation_flight's very first publisher for it — the match never
+# completes and never self-heals no matter how long you wait, but a full
+# node restart (fresh publishers) reliably reconnects cleanly. So on
+# timeout, restart formation_flight itself and give it one more attempt
+# before giving up.
+for ATTEMPT in 1 2; do
+  rm -f "$READY_MARKER"
+  SECONDS=0
+  while [ $SECONDS -lt $ALTITUDE_WAIT ]; do
+    if [ -f "$READY_MARKER" ]; then
+      echo "  All 5 drones reached OFFBOARD after ${SECONDS}s (attempt $ATTEMPT)."
+      break
+    fi
+    sleep 1
+  done
   if [ -f "$READY_MARKER" ]; then
-    echo "  All 5 drones reached OFFBOARD after ${SECONDS}s."
     break
   fi
-  sleep 1
+  if [ $ATTEMPT -lt 2 ]; then
+    echo "  WARNING: drones not all OFFBOARD after ${SECONDS}s — restarting formation_flight and retrying..."
+    tmux send-keys -t $SESSION:flight C-c
+    sleep 1
+    tmux send-keys -t $SESSION:flight \
+      "$SRC && ros2 run swarm_discovery formation_flight $PATTERN" Enter
+  else
+    echo "  WARNING: drones not all OFFBOARD after ${SECONDS}s and 1 restart — proceeding anyway."
+  fi
 done
-if [ ! -f "$READY_MARKER" ]; then
-  echo "  WARNING: drones not all OFFBOARD after ${SECONDS}s — proceeding anyway."
-fi
 echo "  Waiting 10s buffer for altitude climb..."
 sleep 10
 
@@ -234,6 +259,7 @@ echo "[5/7] Starting localisation: $APPROACH..."
   echo "  Waiting for ranging data on all drones..."
   source /opt/ros/humble/setup.bash
   source "$WS/install/setup.bash"
+  export ROS_DISCOVERY_SERVER="127.0.0.1:11811"
   for drone in px4_1 px4_2 px4_3 px4_4 px4_5; do
     nbr="px4_2"; [ "$drone" = "px4_2" ] && nbr="px4_1"
     topic="/${drone}/coop/range_to/${nbr}"
@@ -249,34 +275,39 @@ echo "[5/7] Starting localisation: $APPROACH..."
 tmux new-window -t $SESSION -n algorithm
 ROS2_NODE=${ROS2_NODE_MAP[$APPROACH]}
 
+# Launch the 5 per-drone algorithm nodes staggered (not all at once) — firing
+# ~20 ROS2 participants (this + logger + registry + heartbeats + ranging) in
+# a tight burst can overwhelm Fast-DDS discovery under CPU load, leaving some
+# pub/sub pairs permanently unmatched even though everything involved is
+# otherwise healthy. Same rationale as the existing heartbeat stagger above.
 if [ -n "$ROS2_NODE" ]; then
-  tmux send-keys -t $SESSION:algorithm \
-    "$SRC && \
-     ros2 run swarm_discovery ${ROS2_NODE} px4_1 & \
-     ros2 run swarm_discovery ${ROS2_NODE} px4_2 & \
-     ros2 run swarm_discovery ${ROS2_NODE} px4_3 & \
-     ros2 run swarm_discovery ${ROS2_NODE} px4_4 & \
-     ros2 run swarm_discovery ${ROS2_NODE} px4_5 & wait" Enter
+  tmux send-keys -t $SESSION:algorithm "$SRC" Enter
+  for i in 1 2 3 4 5; do
+    tmux send-keys -t $SESSION:algorithm \
+      "ros2 run swarm_discovery ${ROS2_NODE} px4_${i} &" Enter
+    sleep 0.5
+  done
+  tmux send-keys -t $SESSION:algorithm "wait" Enter
 else
-  tmux send-keys -t $SESSION:algorithm \
-    "export COOP_ATTACK_LABEL=$ATTACK && $SRC && \
-     python3 $PKG/$SCRIPT px4_1 & \
-     python3 $PKG/$SCRIPT px4_2 & \
-     python3 $PKG/$SCRIPT px4_3 & \
-     python3 $PKG/$SCRIPT px4_4 & \
-     python3 $PKG/$SCRIPT px4_5 & wait" Enter
+  tmux send-keys -t $SESSION:algorithm "export COOP_ATTACK_LABEL=$ATTACK && $SRC" Enter
+  for i in 1 2 3 4 5; do
+    tmux send-keys -t $SESSION:algorithm \
+      "python3 $PKG/$SCRIPT px4_${i} &" Enter
+    sleep 0.5
+  done
+  tmux send-keys -t $SESSION:algorithm "wait" Enter
 fi
 
 if [ "$APPROACH" = "wls" ] || [ "$APPROACH" = "ekf" ]; then
   LOGGER_PATH="$WS/src/swarm_discovery/swarm_discovery/coop_loc_logger.py"
   tmux new-window -t $SESSION -n logger
-  tmux send-keys -t $SESSION:logger \
-    "$SRC && sleep 3 && \
-     python3 $LOGGER_PATH $APPROACH px4_1 & \
-     python3 $LOGGER_PATH $APPROACH px4_2 & \
-     python3 $LOGGER_PATH $APPROACH px4_3 & \
-     python3 $LOGGER_PATH $APPROACH px4_4 & \
-     python3 $LOGGER_PATH $APPROACH px4_5 & wait" Enter
+  tmux send-keys -t $SESSION:logger "$SRC && sleep 3" Enter
+  for i in 1 2 3 4 5; do
+    tmux send-keys -t $SESSION:logger \
+      "python3 $LOGGER_PATH $APPROACH px4_${i} &" Enter
+    sleep 0.5
+  done
+  tmux send-keys -t $SESSION:logger "wait" Enter
 fi
 
 echo "  Waiting ${WARMUP_SEC}s for localisation to stabilise..."
@@ -316,6 +347,7 @@ echo "  Stopping (landing drones + preserving swarm_viz)..."
 # Land all drones via offboard command
 source /opt/ros/humble/setup.bash
 source "$WS/install/setup.bash"
+export ROS_DISCOVERY_SERVER="127.0.0.1:11811"
 for i in 1 2 3 4 5; do
   ros2 topic pub --once \
     /px4_${i}/fmu/in/vehicle_command \

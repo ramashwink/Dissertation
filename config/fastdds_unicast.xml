@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+fastdds_unicast.xml
+====================
+SUPERSEDED 2026-07-13: replaced by Fast-DDS Discovery Server
+(ROS_DISCOVERY_SERVER, started in start_swarm_motion.sh) — this profile's
+initialPeersList never specified a port, so it could only ever reach one
+fixed participant slot and proved unreliable as the swarm grew. No longer
+referenced by any script. Left here for reference only.
+WSL2's virtual network adapter does not reliably support IPv4 UDP
+multicast, which is what Fast-DDS (ROS2 Humble's default RMW) uses for
+participant discovery (SPDP) out of the box. Symptom: a publisher believes
+it is sending fine (its own bookkeeping shows fresh outgoing data), but a
+subscriber in a different process — especially one started slightly later,
+e.g. a coop_loc_* node launched after inter_drone_ranging.py — never
+discovers it, silently. Confirmed via `ip maddr show lo` showing zero IPv4
+multicast groups joined (only IPv6).
+
+Fix: force discovery over unicast to a fixed localhost peer list instead
+of relying on multicast announcements. Everything in this project runs on
+127.0.0.1, so this is sufficient.
+
+Usage: export FASTRTPS_DEFAULT_PROFILES_FILE=<path to this file>
+before launching any ROS2 node (source'd once in $SRC in
+run_experiment_motion.sh and start_swarm_motion.sh covers the whole
+pipeline). Does not affect PX4 SITL itself — the uXRCE-DDS bridge between
+PX4 and ROS2 is a separate point-to-point protocol on a fixed port, not
+Fast-DDS multicast discovery.
+-->
+<dds xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <profiles>
+        <participant profile_name="unicast_discovery" is_default_profile="true">
+            <rtps>
+                <builtin>
+                    <discovery_config>
+                        <discoveryProtocol>SIMPLE</discoveryProtocol>
+                    </discovery_config>
+                    <metatrafficUnicastLocatorList>
+                        <locator/>
+                    </metatrafficUnicastLocatorList>
+                    <initialPeersList>
+                        <locator>
+                            <udpv4>
+                                <address>127.0.0.1</address>
+                            </udpv4>
+                        </locator>
+                    </initialPeersList>
+                </builtin>
+            </rtps>
+        </participant>
+    </profiles>
+</dds>

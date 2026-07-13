@@ -1,0 +1,108 @@
+[INFO] [1783940149.809960465] [swarm_registry]: [REGISTRY] Listening on /swarm/heartbeat | timeout=10.0s
+[INFO] [1783940151.779009645] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940152.279331414] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940156.279288416] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940156.779455336] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940160.779380002] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940161.279441296] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940165.279130959] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940165.779500571] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940170.278737084] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940174.779666766] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940179.278783145] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940179.779789470] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940183.779273039] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940184.279796506] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940188.279030540] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940188.778969618] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940192.778786205] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940193.279350095] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940197.278963644] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940197.778936296] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940201.779125408] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940202.279421998] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940206.279076567] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940206.779470901] [swarm_registry]: [REGISTRY] Live: [] | total_seen=0 | sybil_suspects=0
+[INFO] [1783940210.536299721] [swarm_registry]: [REGISTRY] New member: px4_1 @ (-0.00,0.00,-0.01)
+[INFO] [1783940210.779347484] [swarm_registry]: [REGISTRY] Live: ['px4_1'] | total_seen=1 | sybil_suspects=0
+[INFO] [1783940210.993481005] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940211.278982109] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2'] | total_seen=2 | sybil_suspects=0
+[INFO] [1783940211.455396366] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940211.935711702] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940211.995434786] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[INFO] [1783940215.279732186] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940215.779911289] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940220.279116828] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940224.779136239] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940256.478755137] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[WARN] [1783940266.504055773] [swarm_registry]: [REGISTRY] Member expired: px4_2
+[WARN] [1783940266.504637091] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940266.505078673] [swarm_registry]: [REGISTRY] Member expired: px4_4
+[WARN] [1783940234.449749095] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940234.450602242] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940234.452760894] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940234.453482549] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940234.454258337] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[WARN] [1783940281.533653185] [swarm_registry]: [REGISTRY] Member expired: px4_1
+[WARN] [1783940281.533952017] [swarm_registry]: [REGISTRY] Member expired: px4_2
+[WARN] [1783940281.534223637] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940281.534469730] [swarm_registry]: [REGISTRY] Member expired: px4_4
+[WARN] [1783940281.534796460] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940281.535445740] [swarm_registry]: [REGISTRY] New member: px4_1 @ (-0.00,0.00,-0.01)
+[INFO] [1783940281.535986483] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940281.536407318] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940249.481483170] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940249.482174921] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[WARN] [1783940296.569376964] [swarm_registry]: [REGISTRY] Member expired: px4_1
+[WARN] [1783940264.514383809] [swarm_registry]: [REGISTRY] Member expired: px4_2
+[WARN] [1783940264.515023718] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940264.516348139] [swarm_registry]: [REGISTRY] Member expired: px4_4
+[WARN] [1783940264.517035344] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940264.517792522] [swarm_registry]: [REGISTRY] New member: px4_1 @ (-0.00,0.00,-0.01)
+[INFO] [1783940264.518659192] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940264.519207691] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940264.519644458] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940264.520328223] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[WARN] [1783940306.595210398] [swarm_registry]: [REGISTRY] Member expired: px4_1
+[WARN] [1783940306.595555074] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940306.595810031] [swarm_registry]: [REGISTRY] Member expired: px4_2
+[WARN] [1783940306.596055829] [swarm_registry]: [REGISTRY] Member expired: px4_4
+[WARN] [1783940306.596342660] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940306.596770088] [swarm_registry]: [REGISTRY] Live: [] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940274.541922387] [swarm_registry]: [REGISTRY] New member: px4_1 @ (-0.00,0.00,-0.01)
+[INFO] [1783940274.543910956] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940274.544468608] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940274.545238468] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940274.545967347] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[WARN] [1783940316.625268388] [swarm_registry]: [REGISTRY] Member expired: px4_1
+[WARN] [1783940316.625992825] [swarm_registry]: [REGISTRY] Member expired: px4_2
+[WARN] [1783940284.570712856] [swarm_registry]: [REGISTRY] Member expired: px4_4
+[WARN] [1783940284.571236690] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940284.571693199] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940284.572718702] [swarm_registry]: [REGISTRY] New member: px4_1 @ (-0.00,0.00,-0.01)
+[INFO] [1783940284.573663850] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940284.574670451] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940284.575952801] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940284.576495988] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[WARN] [1783940356.684825732] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940356.685532705] [swarm_registry]: [REGISTRY] Member expired: px4_4
+[WARN] [1783940324.629638509] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940324.630395010] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940324.631859451] [swarm_registry]: [REGISTRY] New member: px4_4 @ (2.00,2.00,-0.01)
+[INFO] [1783940324.632284951] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940324.633163550] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[WARN] [1783940356.779610032] [swarm_registry]: [REGISTRY] Member expired: px4_2
+[WARN] [1783940356.779991753] [swarm_registry]: [REGISTRY] Member expired: px4_3
+[WARN] [1783940356.780302669] [swarm_registry]: [REGISTRY] Member expired: px4_5
+[INFO] [1783940356.781024424] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_4'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940356.793359745] [swarm_registry]: [REGISTRY] New member: px4_2 @ (2.00,0.00,-0.01)
+[INFO] [1783940356.795435552] [swarm_registry]: [REGISTRY] New member: px4_5 @ (4.00,2.00,-0.01)
+[INFO] [1783940356.855673783] [swarm_registry]: [REGISTRY] New member: px4_3 @ (4.00,0.00,-0.01)
+[INFO] [1783940360.779659645] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940361.279406719] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940365.279464730] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940365.779669446] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940370.279457847] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940374.779597941] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940379.278938497] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0
+[INFO] [1783940379.778944384] [swarm_registry]: [REGISTRY] Live: ['px4_1', 'px4_2', 'px4_3', 'px4_4', 'px4_5'] | total_seen=5 | sybil_suspects=0

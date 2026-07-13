@@ -1,0 +1,6 @@
+[INFO] [1783946262.417421256] [ground_truth_demux]: publishing x500_1 -> /sim/ground_truth/px4_1/pose
+[INFO] [1783946262.418273109] [ground_truth_demux]: publishing x500_2 -> /sim/ground_truth/px4_2/pose
+[INFO] [1783946262.419065909] [ground_truth_demux]: publishing x500_3 -> /sim/ground_truth/px4_3/pose
+[INFO] [1783946262.419731572] [ground_truth_demux]: publishing x500_4 -> /sim/ground_truth/px4_4/pose
+[INFO] [1783946262.420345803] [ground_truth_demux]: publishing x500_5 -> /sim/ground_truth/px4_5/pose
+[INFO] [1783946262.421605666] [ground_truth_demux]: subscribed to gz topic /world/default/pose/info

@@ -1,0 +1,3 @@
+[14:39:19] Watchdog started. Watching logs/motion_runs/overnight_sweep_.log (stall threshold 480s)
+[14:39:46] Log file missing — batch not running. Watchdog exiting.
+[14:39:46] Watchdog stopped.

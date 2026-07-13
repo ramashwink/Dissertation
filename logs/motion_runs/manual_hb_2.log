@@ -1,0 +1,2 @@
+[INFO] [1783940150.418335006] [swarm_heartbeat_dynamic_px4_2]: [HB-DYN] px4_2 — waiting for ground truth, broadcasting at 5.0 Hz when ready
+[INFO] [1783940210.874160827] [swarm_heartbeat_dynamic_px4_2]: [HB-DYN] px4_2 first GT received: [2.0, 0.0, -0.013]

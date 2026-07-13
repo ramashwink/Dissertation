@@ -98,6 +98,16 @@ class EKFCooperativeLocalisation(Node):
         self._latest_neighbour_pos = {}
         self._iteration           = 0
 
+        # Motion fix: reinitialise EKF when drone reaches flight altitude.
+        # Own state (and neighbour Z anchors) are otherwise seeded from
+        # static registry spawn_z and never corrected once the swarm
+        # climbs — see coop_loc_ekf_chi2_huber.py's identical patch.
+        self._ekf_reinited = False
+        self._REINIT_ALT_M = 0.5
+        self.create_subscription(
+            PoseStamped, f"/sim/ground_truth/{drone_ns}/pose",
+            self._on_own_gt, 10)
+
         # ── Subscriptions ─────────────────────────────────────────────────
         self.create_subscription(
             SwarmRegistry, "/swarm/registry", self._on_registry, 10)
@@ -170,6 +180,26 @@ class EKFCooperativeLocalisation(Node):
             if topic in d:
                 self.destroy_subscription(d.pop(topic))
         self.get_logger().warn(f"[EKF] Removed neighbour: {ns}")
+
+    def _on_own_gt(self, msg):
+        if self._ekf_reinited:
+            return
+        z_enu = msg.pose.position.z
+        if z_enu < self._REINIT_ALT_M:
+            return
+        new_x = float(msg.pose.position.x)
+        new_y = float(msg.pose.position.y)
+        new_z = float(msg.pose.position.z)
+        alt_delta = new_z - float(self._x[2])
+        self._x[:3] = [new_x, new_y, new_z]
+        for ns in self._latest_neighbour_pos:
+            self._latest_neighbour_pos[ns][2] += alt_delta
+        self._P = np.eye(6) * 10.0
+        self._ekf_reinited = True
+        self.get_logger().info(
+            f"[EKF-REINIT] {self.ns} z={z_enu:.2f}m "
+            f"state=({new_x:.2f},{new_y:.2f},{new_z:.2f}) "
+            f"neighbours Z +{alt_delta:.2f}m P reset")
 
     def _on_range(self, neighbour, msg):
         self._latest_range_vec[neighbour] = np.array([

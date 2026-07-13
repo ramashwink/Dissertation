@@ -94,8 +94,9 @@ all_csvs_exist() {
 swarm_alive() {
   source /opt/ros/humble/setup.bash > /dev/null 2>&1
   source "$WS/install/setup.bash" > /dev/null 2>&1
+  export ROS_DISCOVERY_SERVER="127.0.0.1:11811"
   local count
-  count=$(ros2 topic list 2>/dev/null | grep -c "px4_[1-5]/fmu/out/vehicle_local_position" || echo 0)
+  count=$(ros2 topic list 2>/dev/null | grep -c "px4_[1-5]/fmu/out/vehicle_local_position")
   [ "${count}" -ge 5 ]
 }
 

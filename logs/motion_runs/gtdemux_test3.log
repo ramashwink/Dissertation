@@ -1,0 +1,26 @@
+[INFO] [1783945831.334525705] [ground_truth_demux]: publishing x500_1 -> /sim/ground_truth/px4_1/pose
+[INFO] [1783945831.335675463] [ground_truth_demux]: publishing x500_2 -> /sim/ground_truth/px4_2/pose
+[INFO] [1783945831.337002935] [ground_truth_demux]: publishing x500_3 -> /sim/ground_truth/px4_3/pose
+[INFO] [1783945831.337962929] [ground_truth_demux]: publishing x500_4 -> /sim/ground_truth/px4_4/pose
+[INFO] [1783945831.338967116] [ground_truth_demux]: publishing x500_5 -> /sim/ground_truth/px4_5/pose
+[INFO] [1783945831.341281047] [ground_truth_demux]: subscribed to gz topic /world/default/pose/info
+[INFO] [1783945835.789947992] [ground_truth_demux]: ground truth flowing: 250 gz frames processed
+[INFO] [1783945840.216829910] [ground_truth_demux]: ground truth flowing: 500 gz frames processed
+[INFO] [1783945844.619942980] [ground_truth_demux]: ground truth flowing: 750 gz frames processed
+[INFO] [1783945849.067579316] [ground_truth_demux]: ground truth flowing: 1000 gz frames processed
+[INFO] [1783945854.036512334] [ground_truth_demux]: ground truth flowing: 1250 gz frames processed
+[INFO] [1783945858.474386841] [ground_truth_demux]: ground truth flowing: 1500 gz frames processed
+[INFO] [1783945862.906547801] [ground_truth_demux]: ground truth flowing: 1750 gz frames processed
+[INFO] [1783945867.352549167] [ground_truth_demux]: ground truth flowing: 2000 gz frames processed
+[INFO] [1783945871.814237653] [ground_truth_demux]: ground truth flowing: 2250 gz frames processed
+[INFO] [1783945876.268130161] [ground_truth_demux]: ground truth flowing: 2500 gz frames processed
+[INFO] [1783945880.710234000] [ground_truth_demux]: ground truth flowing: 2750 gz frames processed
+[INFO] [1783945885.186708564] [ground_truth_demux]: ground truth flowing: 3000 gz frames processed
+[INFO] [1783945889.629184021] [ground_truth_demux]: ground truth flowing: 3250 gz frames processed
+[INFO] [1783945894.591416830] [ground_truth_demux]: ground truth flowing: 3500 gz frames processed
+[INFO] [1783945899.037727917] [ground_truth_demux]: ground truth flowing: 3750 gz frames processed
+[INFO] [1783945903.503396717] [ground_truth_demux]: ground truth flowing: 4000 gz frames processed
+[INFO] [1783945907.944978593] [ground_truth_demux]: ground truth flowing: 4250 gz frames processed
+[INFO] [1783945912.462228096] [ground_truth_demux]: ground truth flowing: 4500 gz frames processed
+[INFO] [1783945916.976217471] [ground_truth_demux]: ground truth flowing: 4750 gz frames processed
+[INFO] [1783945921.482005980] [ground_truth_demux]: ground truth flowing: 5000 gz frames processed

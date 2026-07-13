@@ -95,6 +95,15 @@ class CoopLocEKFChi2Huber(Node):
         self.latest_range_vec     = {n: None              for n in self.neighbours}
         self.latest_neighbour_pos = {n: SPAWN_POSITIONS[n].copy() for n in self.neighbours}
 
+        # Motion fix: reinitialise EKF when drone reaches flight altitude
+        self._ekf_reinited = False
+        self._REINIT_ALT_M = 0.5
+        from geometry_msgs.msg import PoseStamped
+        self.create_subscription(
+            PoseStamped,
+            f"/sim/ground_truth/{drone_ns}/pose",
+            self._on_own_gt, 10)
+
         # Freeze diagnostics
         self._consecutive_all_reject = 0
         self._froze_warned           = False
@@ -130,6 +139,26 @@ class CoopLocEKFChi2Huber(Node):
     def _on_neighbour_est(self, nbr, msg):
         self.latest_neighbour_pos[nbr] = np.array([
             msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
+
+    def _on_own_gt(self, msg):
+        if self._ekf_reinited:
+            return
+        z_enu = msg.pose.position.z
+        if z_enu < self._REINIT_ALT_M:
+            return
+        new_x = float(msg.pose.position.x)
+        new_y = float(msg.pose.position.y)
+        new_z = float(msg.pose.position.z)
+        alt_delta = new_z - float(self.x[2])
+        self.x = np.array([new_x, new_y, new_z])
+        for nbr in self.neighbours:
+            self.latest_neighbour_pos[nbr][2] += alt_delta
+        self.P = np.eye(3) * 4.0
+        self._ekf_reinited = True
+        self.get_logger().info(
+            f"[EKF-REINIT] {self.drone_ns} z={z_enu:.2f}m "
+            f"state=({new_x:.2f},{new_y:.2f},{new_z:.2f}) "
+            f"neighbours Z +{alt_delta:.2f}m P reset")
 
     def _tick(self):
         if all(self.latest_range_vec[n] is None for n in self.neighbours):
