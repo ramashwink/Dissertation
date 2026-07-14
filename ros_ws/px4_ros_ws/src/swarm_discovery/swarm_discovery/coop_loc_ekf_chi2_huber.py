@@ -156,7 +156,7 @@ class CoopLocEKFChi2Huber(Node):
         self.P = np.eye(3) * 4.0
         self._ekf_reinited = True
         self.get_logger().info(
-            f"[EKF-REINIT] {self.drone_ns} z={z_enu:.2f}m "
+            f"[EKF-REINIT] {self.ns} z={z_enu:.2f}m "
             f"state=({new_x:.2f},{new_y:.2f},{new_z:.2f}) "
             f"neighbours Z +{alt_delta:.2f}m P reset")
 

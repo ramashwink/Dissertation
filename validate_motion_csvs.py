@@ -48,11 +48,16 @@ def main():
     parser.add_argument("--min-rows", type=int, default=10)
     parser.add_argument("--min-density", type=float, default=0.5,
                          help="Minimum acceptable rows per second of span (default 0.5, i.e. >=1 sample per 2s)")
+    parser.add_argument("--combos-only", action="store_true",
+                         help="Print one 'approach attack' pair per line for every combo with a "
+                              "missing or thin/bad drone CSV, deduped across drones. Machine-"
+                              "readable, for driving an automated rerun.")
     args = parser.parse_args()
 
     bad = []
     missing = []
     ok = []
+    bad_combos = set()
 
     for ap in APPROACHES:
         for atk in ATTACKS:
@@ -67,6 +72,7 @@ def main():
 
                 if mrows is None or grows is None:
                     missing.append((key, "metrics" if mrows is None else "gt"))
+                    bad_combos.add((ap, atk))
                     continue
 
                 mdensity = (mrows / mspan) if mspan and mspan > 0 else 0.0
@@ -85,8 +91,14 @@ def main():
 
                 if reasons:
                     bad.append((key, "; ".join(reasons)))
+                    bad_combos.add((ap, atk))
                 else:
                     ok.append((key, mrows, mspan, grows, gspan))
+
+    if args.combos_only:
+        for ap, atk in sorted(bad_combos):
+            print(f"{ap} {atk}")
+        sys.exit(1 if bad_combos else 0)
 
     total = len(APPROACHES) * len(ATTACKS) * len(DRONES)
     print(f"\nMotion CSV validation — pattern={args.pattern}  min_span={args.min_span}s  min_rows={args.min_rows}")

@@ -1,0 +1,58 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║        MOTION EXPERIMENT BATCH RUNNER                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+  Started : Tue Jul 14 11:57:02 AM BST 2026
+  Patterns: hover
+  Log     : /tmp/run_all_motion_20260714_115702.log
+
+  Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+
+  ERROR: Swarm is not running (px4 topics not found).
+  Start it first: bash ~/Dissertation/scripts/start_swarm_motion.sh
+
+╔═══════════════════════════════════════════════════════════════╗
+║        MOTION EXPERIMENT BATCH RUNNER                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+  Started : Tue Jul 14 11:58:54 AM BST 2026
+  Patterns: hover
+  Log     : /tmp/run_all_motion_20260714_115854.log
+
+  Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+
+  ERROR: Swarm is not running (px4 topics not found).
+  Start it first: bash ~/Dissertation/scripts/start_swarm_motion.sh
+
+╔═══════════════════════════════════════════════════════════════╗
+║        MOTION EXPERIMENT BATCH RUNNER                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+  Started : Tue Jul 14 12:00:51 PM BST 2026
+  Patterns: hover
+  Log     : /tmp/run_all_motion_20260714_120051.log
+
+  Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+
+  Swarm   : OK (all 5 drone topics active)
+
+──────────────────────────────────────────────────────────────
+  [1/66]  wls/baseline/hover  (12:00:52)
+  Restarting swarm for a clean run...
+  [restart] (1/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784026855.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [2/66]  wls/sybil/hover  (12:07:41)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [3/66]  wls/replay/hover  (12:07:41)
+  Restarting swarm for a clean run...
+  [restart] (2/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784027264.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
