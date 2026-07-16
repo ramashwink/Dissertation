@@ -6,15 +6,18 @@ Commands all 5 PX4 SITL drones via offboard mode through ROS 2/XRCE-DDS.
 Maintains formation spacing while executing a coordinated flight pattern.
 
 Patterns:
-  hover   — arm + takeoff + hold position (baseline motion experiment)
-  square  — coordinated 8m square at 5m altitude, formation maintained
-  circle  — coordinated circle, 4m radius per drone offset from spawn
+  hover         — arm + takeoff + hold position (baseline motion experiment)
+  square        — coordinated 8m square at 5m altitude, formation maintained
+  circle        — coordinated circle, 4m radius per drone offset from spawn
+  circle_shared — all drones trace ONE common 4m-radius circle (centred on
+                  the spawn-grid centroid), evenly spaced in phase around it
 
 Run AFTER the full ROS 2 stack is up:
     ros2 run swarm_discovery formation_flight
     ros2 run swarm_discovery formation_flight hover
     ros2 run swarm_discovery formation_flight square
     ros2 run swarm_discovery formation_flight circle
+    ros2 run swarm_discovery formation_flight circle_shared
 
 QGC connection ports (for monitoring):
     px4_1: 18570   px4_2: 18571   px4_3: 18572
@@ -53,6 +56,15 @@ SPAWN = {
     "px4_4": [2.0, 2.0],
     "px4_5": [4.0, 2.0],
 }
+
+# Shared-circle pattern: all drones trace ONE common circular path (evenly
+# spaced in phase around it, like cars on a track), rather than each
+# orbiting its own spawn point (see PATTERN == "circle" below).
+DRONE_ORDER          = list(SPAWN.keys())
+CIRCLE_SHARED_CENTER = (
+    sum(p[0] for p in SPAWN.values()) / len(SPAWN),
+    sum(p[1] for p in SPAWN.values()) / len(SPAWN),
+)
 
 QOS = QoSProfile(
     reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -161,6 +173,16 @@ class FormationFlight(Node):
             period = (2 * math.pi * RADIUS) / SPEED
             angle  = 2 * math.pi * (t % period) / period
             return ox + RADIUS*math.cos(angle), oy + RADIUS*math.sin(angle), ALT
+
+        elif PATTERN == "circle_shared":
+            # All drones trace the same circle, spaced evenly in phase so
+            # they maintain separation while following one common path.
+            period       = (2 * math.pi * RADIUS) / SPEED
+            idx          = DRONE_ORDER.index(drone)
+            phase_offset = 2 * math.pi * idx / len(DRONE_ORDER)
+            angle        = (2 * math.pi * (t % period) / period) + phase_offset
+            cx, cy       = CIRCLE_SHARED_CENTER
+            return cx + RADIUS*math.cos(angle), cy + RADIUS*math.sin(angle), ALT
 
         return ox, oy, ALT
 

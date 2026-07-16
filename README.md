@@ -23,6 +23,19 @@ Six cooperative localisation algorithms are compared under eight attacks in a 5-
 
 ---
 
+## Documentation map
+
+| Doc | Covers |
+|---|---|
+| **README.md** (this file) | Project overview, architecture, install, quick start, results extraction, known issues |
+| `MOTION_EXPERIMENT_README.md` | Deep dive on the moving-target (hover/square/circle) testbed variant |
+| `TARGETED_ATTACK_README.md` | Deep dive on the single-drone targeted Byzantine attack ("Finding F4") — maths, results, mitigations |
+| `scripts/DEMO_README.md` | Quick-reference cheat sheet for the live viva demo (`scripts/demo.sh`) |
+| `Readme_stale.md` | **Superseded** — an earlier, differently-scoped doc for the `px4-ekf2-mavlink-exploit` branch (PX4 EKF2 timestamp vulnerability). Kept for reference only, not part of the current pipeline. |
+| `scripts/MOTION_EXPERIMENT_README_stale.md` | **Superseded** — an older draft of `MOTION_EXPERIMENT_README.md` (predates the discovery-server fix and the 5-drone grid layout). Do not follow it. |
+
+---
+
 ## System architecture
 
 ```
@@ -135,14 +148,17 @@ Dissertation/
 │   ├── cleanup_swarm.sh                   # Verified process cleanup
 │   └── rerun_missing.sh                   # Targeted re-run of missing CSVs
 │
-├── analyse_dissertation.py                # Main analysis + figure generator
+├── analyse_dissertation.py                # Main analysis + figure generator (static testbed)
+├── analyse_motion.py                      # Main analysis + figure generator (motion testbed)
 ├── analyse_all_approaches.py              # Per-approach deep analysis
 ├── split_attack_figures.py                # Split catastrophic/moderate figs
 ├── fig3_rq2_tradeoff_patch.py             # Patched RQ2 tradeoff figure
 ├── add_degradation_factor.py              # Adds degradation_factor to CSV
 ├── validate_attacks.py                    # Per-attack injection validation
 ├── validate_localisation_csvs.py          # Detects FROZEN/SHORT runs
+├── validate_motion_csvs.py                # Motion-testbed counterpart to the above
 ├── extract_ground_truth.py                # Gazebo GT → CSV
+├── requirements.txt                       # Python deps (pip install -r requirements.txt)
 └── evidence/
     ├── metrics/                           # Per-drone per-approach CSVs
     │   └── {approach}_{attack}_px4_N.csv
@@ -170,6 +186,102 @@ Dissertation/
 | Micro-XRCE-DDS-Agent | Built from source |
 | Python | 3.10 |
 | OS | Ubuntu 22.04 (WSL2 / Windows 11) |
+
+---
+
+## Prerequisites & installation
+
+Everything below is required **before** the "Quick start" section works. Each external tool is version-pinned because the pipeline has previously broken on version mismatches (see [Known issues](#known-issues-encountered-during-development)) — don't substitute a newer/older release without re-checking that section.
+
+### 0. Hardware / OS
+
+- Ubuntu 22.04 LTS, native or WSL2 (this testbed was built and validated on WSL2 under Windows 11).
+- **~150 GB free disk** — a from-source PX4-Autopilot + Gazebo build tree alone can reach 100+ GB once SITL logs accumulate; ArduPilot and Micro-XRCE-DDS-Agent build trees add a few GB more.
+- A machine that can hold 5 concurrent PX4 SITL instances + Gazebo Harmonic without starving — under-provisioned CPU manifests as PX4 arming timeouts, not crashes (see troubleshooting table further down).
+
+### 1. ROS 2 Humble
+
+Install per the [official ROS 2 Humble instructions](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html) (`ros-humble-desktop`). This pipeline relies on ROS 2 Humble's bundled Fast-DDS **2.6.11** for all `rclpy` nodes — do not mix in a different RMW implementation.
+
+### 2. Gazebo Harmonic
+
+Install Gazebo Harmonic (8.x) per the [Gazebo Harmonic install docs](https://gazebosim.org/docs/harmonic/install), then install the Python transport bindings used by `code/ground_truth_demux.py` to read ground truth directly via gz-transport (bypassing `ros_gz_bridge`, which strips entity names):
+
+```bash
+sudo apt install python3-gz-transport13 python3-gz-msgs10
+```
+
+### 3. PX4-Autopilot (build from source)
+
+```bash
+cd ~/Dissertation/tools
+git clone https://github.com/PX4/PX4-Autopilot.git --recursive
+cd PX4-Autopilot
+git checkout 583e1cdb47   # pinned commit used throughout this project (v1.18.0-alpha1-124-g583e1cdb47)
+bash ./Tools/setup/ubuntu.sh
+make px4_sitl
+```
+
+This produces `tools/PX4-Autopilot/build/px4_sitl_default/` (the SITL binary + per-instance rootfs/parameter storage). The `4001_gz_x500` airframe file under `ROMFS/px4fmu_common/init.d/airframes/` is what bakes in the default parameters every fresh drone boots with.
+
+### 4. Micro-XRCE-DDS-Agent + version-matched Discovery Server
+
+**This step is the single biggest source of pain in this project** (see [Known issues](#known-issues-encountered-during-development)) — ROS 2 Humble's bundled `fast-discovery-server` (Fast-DDS 2.6.11) is **not** compatible with the Agent's own DDS participants if the Agent is built against a different Fast-DDS version. Build both from the *same* source tree so they match:
+
+```bash
+cd ~/Dissertation/tools
+git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+cd Micro-XRCE-DDS-Agent
+git checkout v3.0.1
+mkdir build && cd build
+cmake -DCOMPILE_TOOLS=ON ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig /usr/local/lib/
+
+# Build the version-matched fast-discovery-server binary (used instead of
+# ROS 2 Humble's bundled one — required for multi-node discovery to work at
+# all under WSL2, which lacks IPv4 multicast; see start_swarm_motion.sh)
+make fast-discovery-server
+# binary lands at:
+# tools/Micro-XRCE-DDS-Agent/build/fastdds/src/fastdds-build/tools/fds/fast-discovery-server-1.0.1
+```
+
+`config/fastdds_agent_superclient.xml` (tracked in git) is the `SUPER_CLIENT` profile the Agent needs to find this discovery server — no changes needed unless you use a different port than `11811`.
+
+### 5. Python dependencies
+
+```bash
+pip install -r ~/Dissertation/requirements.txt
+```
+
+Installs `numpy`, `scipy`, `pandas`, `matplotlib`, `pymavlink`, `pyulog`. Install into the same Python environment ROS 2 sources into (system Python 3.10) — a venv that hides the ROS 2-installed `rclpy` will break every node.
+
+### 6. QGroundControl (optional, for live monitoring)
+
+Download the [QGroundControl AppImage](https://qgroundcontrol.com/) — useful for watching arm/offboard state and vehicle health during a run, but not required by any script. Note: QGC numbers vehicles by MAVLink `target_system` = `px4_N` index **+ 1** (QGC "Vehicle 2" = `px4_1`), not by drone name.
+
+### 7. Clone this repo and build the ROS 2 workspace
+
+```bash
+git clone <this-repo-url> ~/Dissertation
+cd ~/Dissertation/ros_ws/px4_ros_ws
+source /opt/ros/humble/setup.bash
+colcon build --packages-select swarm_msgs swarm_discovery
+source install/setup.bash
+```
+
+### What's tracked in git vs built/regenerated locally
+
+| Path | In git? | Why |
+|---|---|---|
+| `ros_ws/px4_ros_ws/src/swarm_msgs/`, `.../swarm_discovery/` | ✅ Yes | All project source code — this is the actual research artefact |
+| `evidence/metrics/`, `evidence/figures/` | ✅ Yes | Experiment results and generated figures — the evidence base for the dissertation |
+| `config/*.xml`, `scripts/*.sh`, `*.py` (root, `code/`) | ✅ Yes | Launch/analysis scripts and DDS profiles needed to rerun anything |
+| `tools/PX4-Autopilot/`, `tools/Micro-XRCE-DDS-Agent/`, `tools/ardupilot/` | ❌ Gitignored | Multi-GB to 100+ GB third-party build trees — clone + build per steps 3–4 above, pinned to the commits given there. `tools/ardupilot/` is vendored but currently unused by any script in this repo (no code path references it) |
+| `ros_ws/px4_ros_ws/{build,install,log}/` | ❌ Gitignored | `colcon build` output — regenerate with step 7 above |
+| `evidence/gt/` | ❌ Gitignored | Ground-truth CSVs (tens of MB) extracted straight from a live Gazebo run — regenerate per-run with `extract_ground_truth.py`, don't treat as static reference data |
+| `logs/` (except tracked run logs) | ❌ Mostly gitignored | Raw per-run console logs — regenerated by every experiment run |
 
 ---
 
@@ -393,6 +505,19 @@ bash ~/Dissertation/scripts/run_experiment_motion.sh ekf_chi2_huber targeted_two
 
 CSVs land in `evidence/metrics/motion/`, tagged `{approach}_px4_N_{attack}_{pattern}.csv`. Each run takes ~2 minutes (60s OFFBOARD wait + 25s stabilise + 90s collection).
 
+### Analyse motion results
+
+```bash
+# All approaches/attacks/patterns currently in evidence/metrics/motion/
+python3 ~/Dissertation/analyse_motion.py
+
+# Filter to one pattern or one drone
+python3 ~/Dissertation/analyse_motion.py --pattern hover
+python3 ~/Dissertation/analyse_motion.py --drone px4_1 --pattern circle
+```
+
+`analyse_motion.py` is the motion counterpart to `analyse_dissertation.py` — same figure set (baseline comparison, per-attack degradation, RQ2 trade-off, solve latency, summary table), extended to the 11 motion attacks and tolerant of partial/missing data (empty panels show "no data yet" instead of crashing). Output figures land in `evidence/figures/motion/`.
+
 ### Infrastructure fixes (2026-07-13)
 
 A multi-hour debugging session traced the historical "some drones log little/no data" bug to its actual root cause and fixed it at the infrastructure level. In order of what a fresh run now goes through:
@@ -431,6 +556,26 @@ Check these **in order** — most upstream cause first, since a failure early in
 | `add_degradation_factor.py` | Adds `degradation_factor = attack_mean / baseline_mean` to summary | `summary_table_with_degradation.csv` |
 
 Run all three after every full matrix to confirm data quality before analysis.
+
+---
+
+## Known issues encountered during development
+
+These are real problems hit over the course of the project, kept here so they don't get re-discovered from scratch. The motion pipeline's DDS discovery saga has its own detailed writeup (["Infrastructure fixes"](#infrastructure-fixes-2026-07-13) and the debugging table below it) — this section covers everything else, roughly in the order a fresh setup is likely to hit them.
+
+| Issue | Symptom | Root cause / fix |
+|---|---|---|
+| Discovery-server / Fast-DDS version mismatch | `ros2 topic list` shows zero `px4_N/...` topics even with `ROS_DISCOVERY_SERVER` set | ROS 2 Humble's bundled `fast-discovery-server` (Fast-DDS 2.6.11) doesn't work with `MicroXRCEAgent` built against Fast-DDS 3.6.1/3.0.1 — build a version-matched discovery server from the same source tree (see [Prerequisites §4](#4-micro-xrce-dds-agent--version-matched-discovery-server)) |
+| WSL2 has no IPv4 multicast | Publishers and subscribers started in different processes never discover each other, even though each looks healthy in isolation | Confirmed via `ip maddr show lo` (zero IPv4 groups joined). Fixed by using Fast-DDS Discovery Server mode (`ROS_DISCOVERY_SERVER=127.0.0.1:11811`) instead of relying on multicast SPDP |
+| `/dev/shm/fastrtps_*` file leak | Discovery degrades over a long testing session even after the fixes above | Fast-DDS's shared-memory/lock files are only cleaned up on a *graceful* shutdown; repeated `kill -9` across many runs leaked 300+ stale files in one evening. `start_swarm_motion.sh` now purges `/dev/shm/fastrtps_*` on every boot |
+| Spawn-position / heartbeat grid mismatch | Systematic anchor bias in every localisation result, present even at baseline | `start_swarm.sh` spawned drones at `(0,0),(0,1),(0,2),(0,3),(0,4)` but `run_experiment.sh` registered heartbeats using a 5-drone grid `(0,0),(2,0),(4,0),(2,2),(4,2)` — the two were never in sync. Both now use the grid layout |
+| Closed EKF feedback loop | EKF results looked spuriously attack-invariant — attacks that clearly should degrade accuracy didn't | Publishing `coop/self_estimate` back into the EKF as if it were an external cooperative measurement created a closed loop feeding the EKF its own output. The feedback path from a node's own estimate is now gated out |
+| Orphaned processes corrupt the next run | A CSV from a "clean" run starts with 0 bytes or duplicate/garbled rows | Weak `pkill`-based cleanup between runs left stale nodes attached to the same topics as the next run. Replaced with `cleanup_swarm.sh` (verified process teardown, with a `--check` mode to confirm nothing is left) |
+| `pkill` killed the wrong thing | A demo/run script terminated itself mid-run | An early cleanup step matched processes by attack name substring, which also matched the launcher script's own `argv` (e.g. cleaning up a "wormhole" attack process also matched a script invoked with `wormhole` as an argument) — pattern tightened to avoid self-matching |
+| Attacks fired before dependent state existed | An attack's effect on the CSV was inconsistent run-to-run, sometimes near-zero | Wormhole/Sybil/Byzantine attack scripts originally had a short (~5 s) warmup before injecting; some runs hit a slow-converging EKF or a not-yet-populated registry. Warmup extended to ~10 s with an explicit readiness gate rather than a fixed sleep |
+| Attack CSV / drone-list mislabelling | One attack's results silently excluded `px4_5`, another's CSV header claimed the wrong drone | Wormhole attack's output CSV header was mislabelled (`px4_3` where it should have read `px4_5`); the `HONEST_DRONES` list in the Sybil/Replay attacks didn't include `px4_5` after the swarm grew from 3→5 drones. Both are drone-count/naming updates that are easy to miss when scaling up — always re-check these lists after changing drone count |
+| PX4 arming rejected under load | `/tmp/px4_N.log` shows `WARN [commander] Arming denied: Resolve system health failures first`, but no DDS/discovery problem is present | Legitimate PX4 health-check rejection (commonly EKF/sensor convergence lag) caused by resource contention — 5 SITL instances + Gazebo on one machine is heavy, and this gets worse as system load climbs. `formation_flight`'s retry loop (every 2 s, indefinitely) usually succeeds if given enough wall-clock time; there is no infra-level bypass currently baked into the airframe params |
+| Gazebo silent crash | No drone movement, QGC looks frozen, no obvious error | `gz sim`'s physics engine (`libdart`/`libode`) can `SIGABRT` under sustained load/collision-detection edge cases. Pre-existing Gazebo Harmonic flakiness, not caused by anything in this repo — check `/tmp/px4_1.log` (which owns the headless Gazebo process) for a crash trace; the only recovery is a full swarm restart |
 
 ---
 

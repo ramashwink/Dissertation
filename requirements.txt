@@ -1,0 +1,17 @@
+# Python dependencies for the cooperative-localisation testbed, attack
+# scripts, and analysis pipeline. Install inside the same Python environment
+# ROS 2 Humble uses (system Python 3.10 on Ubuntu 22.04 — do not use a venv
+# that hides the ROS 2-installed rclpy).
+#
+#   pip install -r requirements.txt
+#
+# gz-transport / gz-msgs Python bindings (used by code/ground_truth_demux.py)
+# are NOT pip-installable — they come from the Gazebo Harmonic apt packages:
+#   sudo apt install python3-gz-transport13 python3-gz-msgs10
+
+numpy>=1.21
+scipy>=1.8
+pandas>=1.4
+matplotlib>=3.5
+pymavlink>=2.4
+pyulog>=1.0
