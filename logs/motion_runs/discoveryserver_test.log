@@ -1,0 +1,71 @@
+
+════════════════════════════════════════════════════════════
+  MOTION EXPERIMENT: ekf / baseline / hover
+════════════════════════════════════════════════════════════
+
+[0/7] Cleaning up (preserving swarm_viz)...
+  Done.
+  Resetting drone poses to grid spawn...
+  reset x500_1 -> (0.0, 0.0, 0.1): OK
+  reset x500_2 -> (2.0, 0.0, 0.1): OK
+  reset x500_3 -> (4.0, 0.0, 0.1): OK
+  reset x500_4 -> (2.0, 2.0, 0.1): OK
+  reset x500_5 -> (4.0, 2.0, 0.1): OK
+[1/7] Checking swarm_viz...
+  swarm_viz started (pid 89520
+89522)
+[2/7] Starting sensing...
+[3/7] Starting registry + dynamic heartbeats...
+  Waiting 8s for registry to populate...
+  Registry total_seen=
+[4/7] Starting formation flight (pattern=hover)...
+  Waiting for all drones to reach OFFBOARD (max 60s)...
+  Monitor in QGC: ports 18571-18575
+  All 5 drones reached OFFBOARD after 4s (attempt 1).
+  Waiting 10s buffer for altitude climb...
+[5/7] Starting localisation: ekf...
+  Stale CSVs cleared.
+  Waiting for ranging data on all drones...
+  Waiting 25s for localisation to stabilise...
+[6/7] No attack (baseline run).
+[7/7] Collecting data for 90s...
+  t=15s  rows: 5
+  t=30s  rows: 8
+  t=45s  rows: 8
+  t=60s  rows: 8
+  t=75s  rows: 9
+  t=90s  rows: 12
+
+  Stopping (landing drones + preserving swarm_viz)...
+Waiting for at least 1 matching subscription(s)...
+publisher: beginning loop
+publishing #1: px4_msgs.msg.VehicleCommand(timestamp=0, param1=0.0, param2=0.0, param3=0.0, param4=0.0, param5=0.0, param6=0.0, param7=0.0, command=21, target_system=2, target_component=1, source_system=0, source_component=0, confirmation=0, from_external=False)
+
+Waiting for at least 1 matching subscription(s)...
+publisher: beginning loop
+publishing #1: px4_msgs.msg.VehicleCommand(timestamp=0, param1=0.0, param2=0.0, param3=0.0, param4=0.0, param5=0.0, param6=0.0, param7=0.0, command=21, target_system=3, target_component=1, source_system=0, source_component=0, confirmation=0, from_external=False)
+
+Waiting for at least 1 matching subscription(s)...
+publisher: beginning loop
+publishing #1: px4_msgs.msg.VehicleCommand(timestamp=0, param1=0.0, param2=0.0, param3=0.0, param4=0.0, param5=0.0, param6=0.0, param7=0.0, command=21, target_system=4, target_component=1, source_system=0, source_component=0, confirmation=0, from_external=False)
+
+Waiting for at least 1 matching subscription(s)...
+publisher: beginning loop
+publishing #1: px4_msgs.msg.VehicleCommand(timestamp=0, param1=0.0, param2=0.0, param3=0.0, param4=0.0, param5=0.0, param6=0.0, param7=0.0, command=21, target_system=5, target_component=1, source_system=0, source_component=0, confirmation=0, from_external=False)
+
+Waiting for at least 1 matching subscription(s)...
+publisher: beginning loop
+publishing #1: px4_msgs.msg.VehicleCommand(timestamp=0, param1=0.0, param2=0.0, param3=0.0, param4=0.0, param5=0.0, param6=0.0, param7=0.0, command=21, target_system=6, target_component=1, source_system=0, source_component=0, confirmation=0, from_external=False)
+
+  Saved: ekf_px4_1_baseline_hover.csv
+  Saved: ekf_px4_2_baseline_hover.csv
+  Saved: ekf_px4_3_baseline_hover.csv
+  Saved: ekf_px4_4_baseline_hover.csv
+  Saved: ekf_px4_5_baseline_hover.csv
+
+════════════════════════════════════════════════════════════
+  DONE: ekf / baseline / hover
+  CSVs: /home/msc-lab/Dissertation/evidence/metrics/motion/
+  swarm_viz: pid=89520
+89522
+════════════════════════════════════════════════════════════

@@ -1,67 +1,47 @@
 #!/bin/bash
-# ============================================================
-# launch_stack.sh
-# Launches the full cooperative localisation + viz stack
-# using tmux — one pane per component
-# Run AFTER start_swarm.sh has all three drones up
-# ============================================================
-
-source /opt/ros/humble/setup.bash
-source "$HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash"
-
-SESSION="swarm"
+WS="$HOME/Dissertation/ros_ws/px4_ros_ws"
 CODE="$HOME/Dissertation/code"
-
-# Kill existing session if any
+SRC="source /opt/ros/humble/setup.bash && source $WS/install/setup.bash"
+SESSION="swarm"
 tmux kill-session -t $SESSION 2>/dev/null || true
 sleep 1
-
-# Create session
 tmux new-session -d -s $SESSION -x 220 -y 50
 
-# Pane 0: ground truth
-tmux send-keys -t $SESSION "source /opt/ros/humble/setup.bash && source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash && python3 $CODE/ground_truth_demux.py" Enter
-
-# Pane 1: ranging
+tmux send-keys -t $SESSION "$SRC && python3 $CODE/ground_truth_demux.py" Enter
 tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "source /opt/ros/humble/setup.bash && source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash && python3 $CODE/inter_drone_ranging.py" Enter
-
-# Pane 2: registry
+tmux send-keys -t $SESSION "$SRC && python3 $CODE/inter_drone_ranging.py" Enter
 tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "source /opt/ros/humble/setup.bash && source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash && ros2 run swarm_discovery swarm_registry" Enter
-
-# Pane 3: heartbeats (all 3 in one pane)
+tmux send-keys -t $SESSION "$SRC && ros2 run swarm_discovery swarm_registry" Enter
 tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "source /opt/ros/humble/setup.bash && source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash && \
+tmux send-keys -t $SESSION "$SRC && \
 ros2 run swarm_discovery swarm_heartbeat px4_1 0.0 0.0 0.0 & \
 ros2 run swarm_discovery swarm_heartbeat px4_2 0.0 1.0 0.0 & \
-ros2 run swarm_discovery swarm_heartbeat px4_3 0.0 2.0 0.0 & wait" Enter
+ros2 run swarm_discovery swarm_heartbeat px4_3 0.0 2.0 0.0 & \
+ros2 run swarm_discovery swarm_heartbeat px4_4 0.0 3.0 0.0 & \
+ros2 run swarm_discovery swarm_heartbeat px4_5 0.0 4.0 0.0 & wait" Enter
 
-# Pane 4: coop localisation (all 3 in one pane)
 tmux new-window -t $SESSION
-tmux send-keys -t $SESSION "source /opt/ros/humble/setup.bash && source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash && \
+tmux send-keys -t $SESSION "$SRC && \
 ros2 run swarm_discovery coop_loc_dynamic px4_1 & \
 ros2 run swarm_discovery coop_loc_dynamic px4_2 & \
-ros2 run swarm_discovery coop_loc_dynamic px4_3 & wait" Enter
+ros2 run swarm_discovery coop_loc_dynamic px4_3 & \
+ros2 run swarm_discovery coop_loc_dynamic px4_4 & \
+ros2 run swarm_discovery coop_loc_dynamic px4_5 & wait" Enter
 
-# Pane 5: visualisation
 tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "source /opt/ros/humble/setup.bash && source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash && ros2 run swarm_discovery swarm_viz" Enter
+tmux send-keys -t $SESSION "$SRC && ros2 run tf2_ros static_transform_publisher 0 0 0 0 0 0 map world & ros2 run swarm_discovery swarm_viz" Enter
 
-# Pane 6: attack — ready but not launched
-tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "# Attack ready — run when baseline is established:" Enter
-tmux send-keys -t $SESSION "# ros2 run swarm_discovery sybil_registry_attack 3" Enter
+tmux new-window -t $SESSION
+tmux send-keys -t $SESSION "# ── ATTACKS ── source first: $SRC" Enter
+tmux send-keys -t $SESSION "$SRC" Enter
 
+echo "[+] 5-drone stack launched: tmux attach -t $SESSION"
 echo ""
-echo "[+] Stack launched in tmux session '$SESSION'"
-echo "    tmux attach -t $SESSION     — attach to view all panes"
-echo "    Ctrl+B then D               — detach without killing"
-echo "    Ctrl+B then arrow keys      — switch panes"
+echo "Open RViz2:  source /opt/ros/humble/setup.bash"
+echo "             source $WS/install/setup.bash"
+echo "             ros2 run rviz2 rviz2"
 echo ""
-echo "[+] Open RViz2 separately:"
-echo "    source /opt/ros/humble/setup.bash"
-echo "    source $HOME/Dissertation/ros_ws/px4_ros_ws/install/setup.bash"
-echo "    ros2 run rviz2 rviz2"
-echo "    → Add → By Topic → /swarm/viz/markers → MarkerArray"
-echo "    → Fixed Frame: world"
+echo "Attacks:"
+echo "  ros2 run swarm_discovery sybil_registry_attack 3"
+echo "  ros2 run swarm_discovery replay_attack delayed"
+echo "  ros2 run swarm_discovery wormhole_attack 0.05"

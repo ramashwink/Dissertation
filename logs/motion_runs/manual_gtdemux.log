@@ -1,0 +1,32 @@
+[INFO] [1783940210.456201106] [ground_truth_demux]: publishing x500_1 -> /sim/ground_truth/px4_1/pose
+[INFO] [1783940210.457162649] [ground_truth_demux]: publishing x500_2 -> /sim/ground_truth/px4_2/pose
+[INFO] [1783940210.458009636] [ground_truth_demux]: publishing x500_3 -> /sim/ground_truth/px4_3/pose
+[INFO] [1783940210.458718256] [ground_truth_demux]: publishing x500_4 -> /sim/ground_truth/px4_4/pose
+[INFO] [1783940210.459380072] [ground_truth_demux]: publishing x500_5 -> /sim/ground_truth/px4_5/pose
+[INFO] [1783940210.461560774] [ground_truth_demux]: subscribed to gz topic /world/default/pose/info
+[INFO] [1783940214.904743880] [ground_truth_demux]: ground truth flowing: 250 gz frames processed
+[INFO] [1783940219.876398739] [ground_truth_demux]: ground truth flowing: 500 gz frames processed
+[INFO] [1783940224.324116556] [ground_truth_demux]: ground truth flowing: 750 gz frames processed
+[INFO] [1783940228.773590653] [ground_truth_demux]: ground truth flowing: 1000 gz frames processed
+[INFO] [1783940233.256365511] [ground_truth_demux]: ground truth flowing: 1250 gz frames processed
+[INFO] [1783940237.719531447] [ground_truth_demux]: ground truth flowing: 1500 gz frames processed
+[INFO] [1783940242.210157666] [ground_truth_demux]: ground truth flowing: 1750 gz frames processed
+[INFO] [1783940246.697850185] [ground_truth_demux]: ground truth flowing: 2000 gz frames processed
+[INFO] [1783940251.176044212] [ground_truth_demux]: ground truth flowing: 2250 gz frames processed
+[INFO] [1783940255.655100015] [ground_truth_demux]: ground truth flowing: 2500 gz frames processed
+[INFO] [1783940260.134325612] [ground_truth_demux]: ground truth flowing: 2750 gz frames processed
+[INFO] [1783940264.613496825] [ground_truth_demux]: ground truth flowing: 3000 gz frames processed
+[INFO] [1783940269.594028619] [ground_truth_demux]: ground truth flowing: 3250 gz frames processed
+[INFO] [1783940274.048182240] [ground_truth_demux]: ground truth flowing: 3500 gz frames processed
+[INFO] [1783940278.510802570] [ground_truth_demux]: ground truth flowing: 3750 gz frames processed
+[INFO] [1783940282.984441049] [ground_truth_demux]: ground truth flowing: 4000 gz frames processed
+[INFO] [1783940287.424384017] [ground_truth_demux]: ground truth flowing: 4250 gz frames processed
+[INFO] [1783940291.893755510] [ground_truth_demux]: ground truth flowing: 4500 gz frames processed
+[INFO] [1783940296.377805484] [ground_truth_demux]: ground truth flowing: 4750 gz frames processed
+[INFO] [1783940300.848883903] [ground_truth_demux]: ground truth flowing: 5000 gz frames processed
+[INFO] [1783940305.339137714] [ground_truth_demux]: ground truth flowing: 5250 gz frames processed
+[INFO] [1783940309.826981924] [ground_truth_demux]: ground truth flowing: 5500 gz frames processed
+[INFO] [1783940314.818049924] [ground_truth_demux]: ground truth flowing: 5750 gz frames processed
+[INFO] [1783940319.293783221] [ground_truth_demux]: ground truth flowing: 6000 gz frames processed
+[INFO] [1783940323.776189180] [ground_truth_demux]: ground truth flowing: 6250 gz frames processed
+[INFO] [1783940328.252091616] [ground_truth_demux]: ground truth flowing: 6500 gz frames processed

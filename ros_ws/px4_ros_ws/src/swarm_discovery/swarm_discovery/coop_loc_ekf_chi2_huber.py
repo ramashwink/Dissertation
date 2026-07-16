@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+"""
+Cooperative localisation -- EKF + χ² gating + Huber (Approach 6 / Bold).
+PATCHED: realistic measurement noise + freeze diagnostics.
+
+This is the dissertation's primary proposed mitigation.  It combines:
+
+  1. Extended Kalman Filter (EKF) for state prediction and covariance
+     propagation — provides a principled uncertainty model.
+
+  2. χ² (chi-squared) innovation gating — before assimilating any range
+     measurement, its Mahalanobis distance from the predicted state is
+     tested against a χ² threshold.  Measurements that fail the gate are
+     REJECTED outright (not just down-weighted).
+
+  3. Huber-weighted update — measurements that PASS the gate are still
+     incorporated with Huber weights in the EKF update step, providing
+     further robustness to heavy-tailed noise.
+
+PATCH NOTES
+-----------
+* MEAS_NOISE_STD raised 0.05 -> 0.20 m.  With R=0.0025 m² the filter was
+  over-confident: after the first update P collapsed toward Q, S≈R became
+  tiny, and ANY residual innovation produced a huge Mahalanobis distance,
+  so the χ² gate rejected essentially everything and the estimate froze at
+  its initial state (std ~1 mm). A 5 cm range σ plus 0.0087 rad bearing σ
+  projected over multi-metre baselines is realistically >10 cm laterally,
+  so R≈0.04 m² is both physical and keeps the gate from becoming a
+  hair-trigger. Re-tune per experiment.
+* Added a per-tick liveness check: if the gate rejects 100% of
+  measurements over a sustained window the node logs a FROZEN warning so a
+  dead filter is never silently scored as "robust". The CSV already carries
+  n_passed_gate / n_rejected_gate / trace_P for offline confirmation.
+
+EKF state vector:  x = [px, py, pz]  (position only, constant-velocity
+                   process model is an extension left for future work).
+Observation model: h(x) = x_neighbour - x  (relative position vector)
+
+Usage:
+    python3 coop_loc_ekf_chi2_huber.py px4_1
+
+CSV log: ~/Dissertation/evidence/metrics/ekf_chi2_huber_{ns}.csv
+"""
+import csv
+import os
+import sys
+import time
+import numpy as np
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import PointStamped, PoseStamped
+from std_msgs.msg import Float32
+
+# ── Swarm configuration ──────────────────────────────────────────────────────
+DRONES = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
+
+SPAWN_POSITIONS = {
+    "px4_1": np.array([0.0,  0.0, 0.0]),
+    "px4_2": np.array([2.0,  0.0, 0.0]),
+    "px4_3": np.array([4.0,  0.0, 0.0]),
+    "px4_4": np.array([2.0,  2.0, 0.0]),
+    "px4_5": np.array([4.0,  2.0, 0.0]),
+}
+
+PUBLISH_HZ         = 10.0
+PROCESS_NOISE_STD  = 0.01   # metres per tick (random walk)
+MEAS_NOISE_STD     = float(os.environ.get("COOP_MEAS_NOISE_STD", "0.20"))   # PATCH: was 0.05; R = 0.04 m² (realistic LiDAR coop noise)
+CHI2_THRESHOLD     = float(os.environ.get("COOP_CHI2_THRESHOLD", "7.815"))  # χ²(3 dof, p=0.95) — correct for 3-dof measurement
+HUBER_DELTA        = 0.5    # metres — Huber threshold for accepted measurements
+
+# Freeze guard: if every gated measurement is rejected for this many
+# consecutive ticks, warn (the filter is no longer being updated).
+FREEZE_WARN_TICKS  = 30      # ~3 s at 10 Hz
+
+APPROACH = "ekf_chi2_huber"
+LOG_DIR  = os.path.expanduser("~/Dissertation/evidence/metrics")
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class CoopLocEKFChi2Huber(Node):
+    def __init__(self, drone_ns):
+        super().__init__(f"coop_loc_ekf_chi2_{drone_ns}")
+        self.ns         = drone_ns
+        self.neighbours = [d for d in DRONES if d != drone_ns]
+
+        # ── EKF state ────────────────────────────────────────────────────────
+        self.x  = SPAWN_POSITIONS[drone_ns].copy()        # state: [px, py, pz]
+        self.P  = np.eye(3) * 1.0                         # initial covariance
+
+        # Noise matrices
+        self.Q  = np.eye(3) * (PROCESS_NOISE_STD ** 2)   # process noise
+        self.R  = np.eye(3) * (MEAS_NOISE_STD   ** 2)    # measurement noise
+
+        # ── Data buffers ─────────────────────────────────────────────────────
+        self.latest_range_vec     = {n: None              for n in self.neighbours}
+        self.latest_neighbour_pos = {n: SPAWN_POSITIONS[n].copy() for n in self.neighbours}
+
+        # Motion fix: reinitialise EKF when drone reaches flight altitude
+        self._ekf_reinited = False
+        self._REINIT_ALT_M = 0.5
+        from geometry_msgs.msg import PoseStamped
+        self.create_subscription(
+            PoseStamped,
+            f"/sim/ground_truth/{drone_ns}/pose",
+            self._on_own_gt, 10)
+
+        # Freeze diagnostics
+        self._consecutive_all_reject = 0
+        self._froze_warned           = False
+
+        for nbr in self.neighbours:
+            self.create_subscription(
+                PointStamped, f"/{drone_ns}/coop/range_to/{nbr}",
+                lambda msg, n=nbr: self._on_range(n, msg), 10)
+            self.create_subscription(
+                PoseStamped,  f"/{nbr}/coop/self_estimate",
+                lambda msg, n=nbr: self._on_neighbour_est(n, msg), 10)
+
+        self.est_pub  = self.create_publisher(PoseStamped, f"/{drone_ns}/coop/self_estimate", 10)
+        self.time_pub = self.create_publisher(Float32,     f"/{drone_ns}/coop/solve_time_ms",  10)
+
+        os.makedirs(LOG_DIR, exist_ok=True)
+        log_path = os.path.join(LOG_DIR, f"{APPROACH}_{drone_ns}.csv")
+        self._csv_fh  = open(log_path, "w", newline="")
+        self._csv_out = csv.writer(self._csv_fh)
+        self._csv_out.writerow([
+            "t_sec", "x", "y", "z", "solve_ms",
+            "n_passed_gate", "n_rejected_gate", "trace_P"
+        ])
+        self.get_logger().info(
+            f"Logging to {log_path}  (R={MEAS_NOISE_STD**2:.4f} m², χ²={CHI2_THRESHOLD})")
+
+        self.timer = self.create_timer(1.0 / PUBLISH_HZ, self._tick)
+        self._t0   = time.monotonic()
+
+    def _on_range(self, nbr, msg):
+        self.latest_range_vec[nbr] = np.array([msg.point.x, msg.point.y, msg.point.z])
+
+    def _on_neighbour_est(self, nbr, msg):
+        self.latest_neighbour_pos[nbr] = np.array([
+            msg.pose.position.x, msg.pose.position.y, msg.pose.position.z])
+
+    def _on_own_gt(self, msg):
+        if self._ekf_reinited:
+            return
+        z_enu = msg.pose.position.z
+        if z_enu < self._REINIT_ALT_M:
+            return
+        new_x = float(msg.pose.position.x)
+        new_y = float(msg.pose.position.y)
+        new_z = float(msg.pose.position.z)
+        alt_delta = new_z - float(self.x[2])
+        self.x = np.array([new_x, new_y, new_z])
+        for nbr in self.neighbours:
+            self.latest_neighbour_pos[nbr][2] += alt_delta
+        self.P = np.eye(3) * 4.0
+        self._ekf_reinited = True
+        self.get_logger().info(
+            f"[EKF-REINIT] {self.ns} z={z_enu:.2f}m "
+            f"state=({new_x:.2f},{new_y:.2f},{new_z:.2f}) "
+            f"neighbours Z +{alt_delta:.2f}m P reset")
+
+    def _tick(self):
+        if all(self.latest_range_vec[n] is None for n in self.neighbours):
+            return  # no data yet — wait for first ranging message
+
+        t_start = time.perf_counter()
+        n_pass, n_rej = self._ekf_update()
+        solve_ms = (time.perf_counter() - t_start) * 1e3
+
+        # ── Freeze guard ─────────────────────────────────────────────────────
+        if n_pass == 0 and n_rej > 0:
+            self._consecutive_all_reject += 1
+        else:
+            self._consecutive_all_reject = 0
+            self._froze_warned = False
+        if (self._consecutive_all_reject >= FREEZE_WARN_TICKS
+                and not self._froze_warned):
+            self._froze_warned = True
+            self.get_logger().warn(
+                f"[FROZEN] {self.ns}: gate rejected ALL measurements for "
+                f"{self._consecutive_all_reject} ticks — estimate not updating. "
+                f"trace_P={np.trace(self.P):.6f}. Treat this run as INVALID, "
+                f"not robust. Check spawn geometry / increase R / raise χ²."
+            )
+
+        self._publish_estimate()
+        msg_t = Float32(); msg_t.data = float(solve_ms)
+        self.time_pub.publish(msg_t)
+
+        elapsed = time.monotonic() - self._t0
+        self._csv_out.writerow([
+            f"{elapsed:.3f}",
+            f"{self.x[0]:.4f}", f"{self.x[1]:.4f}", f"{self.x[2]:.4f}",
+            f"{solve_ms:.3f}", n_pass, n_rej, f"{np.trace(self.P):.6f}",
+        ])
+        self._csv_fh.flush()
+
+    def _ekf_update(self):
+        """
+        EKF predict + sequential update with χ² gating and Huber weighting.
+
+        Uses sequential (one-at-a-time) measurement processing so each
+        neighbour range can be individually gated.
+        """
+        # ── Predict ──────────────────────────────────────────────────────────
+        # Process model: F = I (stationary hover assumption)
+        x_pred = self.x.copy()
+        P_pred = self.P + self.Q
+
+        x  = x_pred.copy()
+        P  = P_pred.copy()
+        n_pass = 0
+        n_rej  = 0
+
+        # ── Sequential update per neighbour ──────────────────────────────────
+        for nbr in self.neighbours:
+            if self.latest_range_vec[nbr] is None:
+                n_rej += 1
+                continue  # ranging not yet available for this neighbour
+            p_nbr = self.latest_neighbour_pos[nbr]   # neighbour's position
+            z     = self.latest_range_vec[nbr]        # observed relative vector
+
+            # Observation model: h(x) = p_nbr - x
+            # Jacobian H = -I_3  (d/dx [p_nbr - x] = -I)
+            H  = -np.eye(3)
+            z_pred = p_nbr - x                       # predicted observation
+
+            # Innovation
+            y = z - z_pred                           # innovation vector (3,)
+
+            # Innovation covariance
+            S = H @ P @ H.T + self.R                 # (3,3)
+
+            # ── χ² gate ──────────────────────────────────────────────────────
+            try:
+                S_inv = np.linalg.inv(S)
+            except np.linalg.LinAlgError:
+                n_rej += 1
+                continue
+
+            mahal_sq = float(y @ S_inv @ y)
+
+            if mahal_sq > CHI2_THRESHOLD:
+                # Measurement rejected — too far from prediction
+                n_rej += 1
+                self.get_logger().debug(
+                    f"[gate] rejected {nbr}: mahal²={mahal_sq:.2f} > {CHI2_THRESHOLD}")
+                continue
+
+            n_pass += 1
+
+            # ── Huber weight ─────────────────────────────────────────────────
+            # Scale the measurement noise covariance by a Huber-inspired
+            # scalar weight based on the innovation norm.
+            innov_norm = np.linalg.norm(y)
+            if innov_norm <= HUBER_DELTA:
+                huber_w = 1.0
+            else:
+                huber_w = HUBER_DELTA / innov_norm   # down-weight large innovations
+
+            R_robust = self.R / (huber_w + 1e-12)    # inflate R for down-weighted measurements
+
+            # ── Standard EKF update with robust R ────────────────────────────
+            S_robust = H @ P @ H.T + R_robust
+            K        = P @ H.T @ np.linalg.inv(S_robust)   # Kalman gain (3,3)
+            x        = x + K @ y
+            P        = (np.eye(3) - K @ H) @ P
+
+        self.x = x
+        self.P = P
+        return n_pass, n_rej
+
+    def _publish_estimate(self):
+        msg = PoseStamped()
+        msg.header.stamp    = self.get_clock().now().to_msg()
+        msg.header.frame_id = "world"
+        msg.pose.position.x = float(self.x[0])
+        msg.pose.position.y = float(self.x[1])
+        msg.pose.position.z = float(self.x[2])
+        msg.pose.orientation.w = 1.0
+        self.est_pub.publish(msg)
+
+    def destroy_node(self):
+        self._csv_fh.close()
+        super().destroy_node()
+
+
+def main():
+    drone_ns = sys.argv[1] if len(sys.argv) > 1 else "px4_1"
+    if drone_ns not in DRONES:
+        print(f"Unknown drone '{drone_ns}'. Choose from {DRONES}"); sys.exit(1)
+    rclpy.init()
+    node = CoopLocEKFChi2Huber(drone_ns)
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

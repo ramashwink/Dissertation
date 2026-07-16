@@ -59,7 +59,7 @@ except ImportError:
     print("[VIZ] gz-transport not available — RViz2 only mode")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-ALL_DRONES    = ["px4_1", "px4_2", "px4_3"]
+ALL_DRONES    = ["px4_1", "px4_2", "px4_3", "px4_4", "px4_5"]
 UPDATE_HZ     = 25.0
 
 # Marker IDs (must be unique per namespace in RViz2)

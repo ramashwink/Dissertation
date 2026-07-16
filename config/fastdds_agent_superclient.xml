@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+fastdds_agent_superclient.xml
+==============================
+Added 2026-07-13 (post-restart investigation): MicroXRCEAgent creates its own
+internal Fast-DDS participants (one per bridged PX4 topic) that do NOT
+automatically honor the ROS_DISCOVERY_SERVER env var the way ROS2/rclpy
+nodes do (rclpy's rmw_fastrtps layer auto-configures SUPER_CLIENT from that
+env var; the Agent's raw Fast-DDS 3.x participant creation does not).
+Confirmed via `ss -uapn`: the Agent had opened dozens of ports in the
+7410-7421 range, the classic Fast-DDS SIMPLE-discovery default unicast
+metatraffic port range — meaning its participants were relying on default
+multicast SPDP, not the Discovery Server, even with ROS_DISCOVERY_SERVER set
+in its environment. Since this box's WSL2 virtual adapter has no IPv4
+multicast (see fastdds_unicast.xml's header for that finding), this made
+Agent-bridged PX4 topics undiscoverable by any ROS2 tool/node except by
+lucky timing.
+
+Fix: explicitly load this profile via FASTRTPS_DEFAULT_PROFILES_FILE before
+launching MicroXRCEAgent, forcing its participants into SUPER_CLIENT mode
+against the same Fast-DDS Discovery Server the rest of the pipeline uses.
+Server prefix below must match whatever `fastdds discovery -i 0 -p 11811`
+prints as "Server GUID prefix" at startup (currently stable at
+44.53.00.5f.45.50.52.4f.53.49.4d.41 — the eprosima default's fixed prefix for
+server ID 0, not random per-run).
+-->
+<dds xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <profiles>
+        <participant profile_name="agent_super_client" is_default_profile="true">
+            <rtps>
+                <builtin>
+                    <discovery_config>
+                        <discoveryProtocol>SUPER_CLIENT</discoveryProtocol>
+                        <discoveryServersList>
+                            <RemoteServer prefix="44.53.00.5f.45.50.52.4f.53.49.4d.41">
+                                <metatrafficUnicastLocatorList>
+                                    <locator>
+                                        <udpv4>
+                                            <address>127.0.0.1</address>
+                                            <port>11811</port>
+                                        </udpv4>
+                                    </locator>
+                                </metatrafficUnicastLocatorList>
+                            </RemoteServer>
+                        </discoveryServersList>
+                    </discovery_config>
+                </builtin>
+            </rtps>
+        </participant>
+    </profiles>
+</dds>

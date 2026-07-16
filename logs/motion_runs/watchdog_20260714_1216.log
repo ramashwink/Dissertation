@@ -1,0 +1,3 @@
+[12:16:06] Watchdog started. Watching logs/motion_runs/overnight_sweep_20260714_1216.log (stall threshold 480s)
+[14:17:00] BATCH COMPLETE detected. Watchdog exiting cleanly.
+[14:17:00] Watchdog stopped.

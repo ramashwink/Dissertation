@@ -1,0 +1,121 @@
+[INFO] [1783945258.128832824] [ground_truth_demux]: publishing x500_1 -> /sim/ground_truth/px4_1/pose
+[INFO] [1783945258.129570265] [ground_truth_demux]: publishing x500_2 -> /sim/ground_truth/px4_2/pose
+[INFO] [1783945258.130136749] [ground_truth_demux]: publishing x500_3 -> /sim/ground_truth/px4_3/pose
+[INFO] [1783945258.130709475] [ground_truth_demux]: publishing x500_4 -> /sim/ground_truth/px4_4/pose
+[INFO] [1783945258.131265045] [ground_truth_demux]: publishing x500_5 -> /sim/ground_truth/px4_5/pose
+[INFO] [1783945258.132515701] [ground_truth_demux]: subscribed to gz topic /world/default/pose/info
+[INFO] [1783945456.726514844] [ground_truth_demux]: ground truth flowing: 250 gz frames processed
+[INFO] [1783945461.225088755] [ground_truth_demux]: ground truth flowing: 500 gz frames processed
+[INFO] [1783945465.724486487] [ground_truth_demux]: ground truth flowing: 750 gz frames processed
+[INFO] [1783945470.374884340] [ground_truth_demux]: ground truth flowing: 1000 gz frames processed
+[INFO] [1783945475.029790773] [ground_truth_demux]: ground truth flowing: 1250 gz frames processed
+[INFO] [1783945479.680908392] [ground_truth_demux]: ground truth flowing: 1500 gz frames processed
+[INFO] [1783945484.344627831] [ground_truth_demux]: ground truth flowing: 1750 gz frames processed
+[INFO] [1783945488.828257175] [ground_truth_demux]: ground truth flowing: 2000 gz frames processed
+[INFO] [1783945493.807636122] [ground_truth_demux]: ground truth flowing: 2250 gz frames processed
+[INFO] [1783945498.306444614] [ground_truth_demux]: ground truth flowing: 2500 gz frames processed
+[INFO] [1783945502.781768027] [ground_truth_demux]: ground truth flowing: 2750 gz frames processed
+[INFO] [1783945507.258293553] [ground_truth_demux]: ground truth flowing: 3000 gz frames processed
+[INFO] [1783945511.716585392] [ground_truth_demux]: ground truth flowing: 3250 gz frames processed
+[INFO] [1783945516.175593837] [ground_truth_demux]: ground truth flowing: 3500 gz frames processed
+[INFO] [1783945520.666266861] [ground_truth_demux]: ground truth flowing: 3750 gz frames processed
+[INFO] [1783945525.141461467] [ground_truth_demux]: ground truth flowing: 4000 gz frames processed
+[INFO] [1783945529.624517815] [ground_truth_demux]: ground truth flowing: 4250 gz frames processed
+[INFO] [1783945566.216905493] [ground_truth_demux]: ground truth flowing: 4500 gz frames processed
+[INFO] [1783945571.204616224] [ground_truth_demux]: ground truth flowing: 4750 gz frames processed
+[INFO] [1783945576.181918058] [ground_truth_demux]: ground truth flowing: 5000 gz frames processed
+[INFO] [1783945547.688491063] [ground_truth_demux]: ground truth flowing: 5250 gz frames processed
+[INFO] [1783945552.539134219] [ground_truth_demux]: ground truth flowing: 5500 gz frames processed
+[INFO] [1783945557.017848505] [ground_truth_demux]: ground truth flowing: 5750 gz frames processed
+[INFO] [1783945561.497670897] [ground_truth_demux]: ground truth flowing: 6000 gz frames processed
+[INFO] [1783945565.976862740] [ground_truth_demux]: ground truth flowing: 6250 gz frames processed
+[INFO] [1783945570.462654427] [ground_truth_demux]: ground truth flowing: 6500 gz frames processed
+[INFO] [1783945574.947541978] [ground_truth_demux]: ground truth flowing: 6750 gz frames processed
+[INFO] [1783945579.414330991] [ground_truth_demux]: ground truth flowing: 7000 gz frames processed
+[INFO] [1783945583.892608932] [ground_truth_demux]: ground truth flowing: 7250 gz frames processed
+[INFO] [1783945588.872709880] [ground_truth_demux]: ground truth flowing: 7500 gz frames processed
+[INFO] [1783945593.367209881] [ground_truth_demux]: ground truth flowing: 7750 gz frames processed
+[INFO] [1783945597.831230248] [ground_truth_demux]: ground truth flowing: 8000 gz frames processed
+[INFO] [1783945602.310629643] [ground_truth_demux]: ground truth flowing: 8250 gz frames processed
+[INFO] [1783945606.797664382] [ground_truth_demux]: ground truth flowing: 8500 gz frames processed
+[INFO] [1783945611.290156973] [ground_truth_demux]: ground truth flowing: 8750 gz frames processed
+[INFO] [1783945615.788093594] [ground_truth_demux]: ground truth flowing: 9000 gz frames processed
+[INFO] [1783945620.267138393] [ground_truth_demux]: ground truth flowing: 9250 gz frames processed
+[INFO] [1783945624.738421514] [ground_truth_demux]: ground truth flowing: 9500 gz frames processed
+[INFO] [1783945629.220499199] [ground_truth_demux]: ground truth flowing: 9750 gz frames processed
+[INFO] [1783945634.200770140] [ground_truth_demux]: ground truth flowing: 10000 gz frames processed
+[INFO] [1783945638.675084455] [ground_truth_demux]: ground truth flowing: 10250 gz frames processed
+Traceback (most recent call last):
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 96, in main
+    rclpy.spin(node)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+    executor.spin_once()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 797, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 780, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 681, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 105, in <module>
+    main()
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 101, in main
+    rclpy.shutdown()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 130, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/utilities.py", line 58, in shutdown
+    return context.shutdown()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/context.py", line 102, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:241
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/gz/transport13/__init__.py", line 115, in cb_deserialize
+    callback(deserialized_msg)
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 85, in _on_gz_pose
+    self.pubs[pose.name].publish(ps)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 68, in publish
+    with self.handle:
+rclpy._rclpy_pybind11.InvalidHandle: cannot use Destroyable because destruction was requested
+ <_io.TextIOWrapper name='<stderr>' mode='w' encoding='utf-8'>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/gz/transport13/__init__.py", line 115, in cb_deserialize
+    callback(deserialized_msg)
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 85, in _on_gz_pose
+    self.pubs[pose.name].publish(ps)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 68, in publish
+    with self.handle:
+rclpy._rclpy_pybind11.InvalidHandle: cannot use Destroyable because destruction was requested
+ <_io.TextIOWrapper name='<stderr>' mode='w' encoding='utf-8'>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/gz/transport13/__init__.py", line 115, in cb_deserialize
+    callback(deserialized_msg)
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 85, in _on_gz_pose
+    self.pubs[pose.name].publish(ps)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 68, in publish
+    with self.handle:
+rclpy._rclpy_pybind11.InvalidHandle: cannot use Destroyable because destruction was requested
+ <_io.TextIOWrapper name='<stderr>' mode='w' encoding='utf-8'>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/gz/transport13/__init__.py", line 115, in cb_deserialize
+    callback(deserialized_msg)
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 85, in _on_gz_pose
+    self.pubs[pose.name].publish(ps)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 68, in publish
+    with self.handle:
+rclpy._rclpy_pybind11.InvalidHandle: cannot use Destroyable because destruction was requested
+ <_io.TextIOWrapper name='<stderr>' mode='w' encoding='utf-8'>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/gz/transport13/__init__.py", line 115, in cb_deserialize
+    callback(deserialized_msg)
+  File "/home/msc-lab/Dissertation/code/ground_truth_demux.py", line 85, in _on_gz_pose
+    self.pubs[pose.name].publish(ps)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 68, in publish
+    with self.handle:
+rclpy._rclpy_pybind11.InvalidHandle: cannot use Destroyable because destruction was requested
+ <_io.TextIOWrapper name='<stderr>' mode='w' encoding='utf-8'>

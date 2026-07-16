@@ -1,0 +1,266 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║        MOTION EXPERIMENT BATCH RUNNER                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+  Started : Tue Jul 14 02:21:20 PM BST 2026
+  Patterns: hover
+  Log     : /tmp/run_all_motion_20260714_142120.log
+
+  Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+
+  Swarm   : OK (all 5 drone topics active)
+
+──────────────────────────────────────────────────────────────
+  [1/66]  wls/baseline/hover  (14:21:20)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [2/66]  wls/sybil/hover  (14:21:20)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [3/66]  wls/replay/hover  (14:21:20)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [4/66]  wls/wormhole/hover  (14:21:20)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [5/66]  wls/sybil_consistent/hover  (14:21:20)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [6/66]  wls/replay_gradual/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [7/66]  wls/byzantine/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [8/66]  wls/timesync/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [9/66]  wls/targeted_ramp/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [10/66]  wls/targeted_osc/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [11/66]  wls/targeted_two_drone/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [12/66]  ekf/baseline/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [13/66]  ekf/sybil/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [14/66]  ekf/replay/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [15/66]  ekf/wormhole/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [16/66]  ekf/sybil_consistent/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [17/66]  ekf/replay_gradual/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [18/66]  ekf/byzantine/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [19/66]  ekf/timesync/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [20/66]  ekf/targeted_ramp/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [21/66]  ekf/targeted_osc/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [22/66]  ekf/targeted_two_drone/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [23/66]  wls_huber/baseline/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [24/66]  wls_huber/sybil/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [25/66]  wls_huber/replay/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [26/66]  wls_huber/wormhole/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [27/66]  wls_huber/sybil_consistent/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [28/66]  wls_huber/replay_gradual/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [29/66]  wls_huber/byzantine/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [30/66]  wls_huber/timesync/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [31/66]  wls_huber/targeted_ramp/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [32/66]  wls_huber/targeted_osc/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [33/66]  wls_huber/targeted_two_drone/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [34/66]  wls_tukey/baseline/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [35/66]  wls_tukey/sybil/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [36/66]  wls_tukey/replay/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [37/66]  wls_tukey/wormhole/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [38/66]  wls_tukey/sybil_consistent/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [39/66]  wls_tukey/replay_gradual/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [40/66]  wls_tukey/byzantine/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [41/66]  wls_tukey/timesync/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [42/66]  wls_tukey/targeted_ramp/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [43/66]  wls_tukey/targeted_osc/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [44/66]  wls_tukey/targeted_two_drone/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [45/66]  ransac/baseline/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [46/66]  ransac/sybil/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [47/66]  ransac/replay/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [48/66]  ransac/wormhole/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [49/66]  ransac/sybil_consistent/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [50/66]  ransac/replay_gradual/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [51/66]  ransac/byzantine/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [52/66]  ransac/timesync/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [53/66]  ransac/targeted_ramp/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [54/66]  ransac/targeted_osc/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [55/66]  ransac/targeted_two_drone/hover  (14:21:21)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [56/66]  ekf_chi2_huber/baseline/hover  (14:21:21)
+  Restarting swarm for a clean run...
+  [restart] (1/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784035284.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [57/66]  ekf_chi2_huber/sybil/hover  (14:27:53)
+  Restarting swarm for a clean run...
+  [restart] (2/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784035676.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [58/66]  ekf_chi2_huber/replay/hover  (14:34:36)
+  Restarting swarm for a clean run...
+  [restart] (3/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784036079.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [59/66]  ekf_chi2_huber/wormhole/hover  (14:41:17)
+  Restarting swarm for a clean run...
+  [restart] (4/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784036480.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [60/66]  ekf_chi2_huber/sybil_consistent/hover  (14:48:04)
+  Restarting swarm for a clean run...
+  [restart] (5/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784036888.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [61/66]  ekf_chi2_huber/replay_gradual/hover  (14:54:47)
+  Restarting swarm for a clean run...
+  [restart] (6/60) Killing stale processes...
+  [restart] Launching start_swarm_motion.sh (log: /tmp/swarm_restart_1784037290.log)...
+  [restart] Swarm ready after 87s.
+  → RUNNING (attempt 1)...
+  → PASS
+  Settling 20s...
+──────────────────────────────────────────────────────────────
+  [62/66]  ekf_chi2_huber/byzantine/hover  (15:01:30)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [63/66]  ekf_chi2_huber/timesync/hover  (15:01:30)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [64/66]  ekf_chi2_huber/targeted_ramp/hover  (15:01:30)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [65/66]  ekf_chi2_huber/targeted_osc/hover  (15:01:30)
+  → SKIP (all 5 CSVs already present)
+──────────────────────────────────────────────────────────────
+  [66/66]  ekf_chi2_huber/targeted_two_drone/hover  (15:01:30)
+  → SKIP (all 5 CSVs already present)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  BATCH COMPLETE  15:01:31 14-Jul-2026
+║  Passed: 6   Skipped: 60   Failed: 0   Total: 66
+╚═══════════════════════════════════════════════════════════════╝
+
+  Pattern=hover
+
+                     baseline         sybil            replay           wormhole         sybil_consistent replay_gradual   byzantine        timesync         targeted_ramp    targeted_osc     targeted_two_drone
+    wls              skip             skip             skip             skip             skip             skip             skip             skip             skip             skip             skip            
+    ekf              skip             skip             skip             skip             skip             skip             skip             skip             skip             skip             skip            
+    wls_huber        skip             skip             skip             skip             skip             skip             skip             skip             skip             skip             skip            
+    wls_tukey        skip             skip             skip             skip             skip             skip             skip             skip             skip             skip             skip            
+    ransac           skip             skip             skip             skip             skip             skip             skip             skip             skip             skip             skip            
+    ekf_chi2_huber   pass             pass             pass             pass             pass             pass             skip             skip             skip             skip             skip            
+
+  CSVs : /home/msc-lab/Dissertation/evidence/metrics/motion/
+  Log  : /tmp/run_all_motion_20260714_142120.log
+

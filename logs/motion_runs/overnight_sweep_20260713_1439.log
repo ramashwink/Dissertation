@@ -1,0 +1,15 @@
+
+╔═══════════════════════════════════════════════════════════════╗
+║        MOTION EXPERIMENT BATCH RUNNER                        ║
+╚═══════════════════════════════════════════════════════════════╝
+
+  Started : Mon Jul 13 02:39:17 PM BST 2026
+  Patterns: hover
+  Log     : /tmp/run_all_motion_20260713_143917.log
+
+  Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+
+scripts/run_all_experiments_motion.sh: line 99: [: 0
+0: integer expression expected
+  ERROR: Swarm is not running (px4 topics not found).
+  Start it first: bash ~/Dissertation/scripts/start_swarm_motion.sh

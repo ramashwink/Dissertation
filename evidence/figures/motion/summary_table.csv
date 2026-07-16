@@ -1,0 +1,67 @@
+approach,attack,pattern,mean_err_m,peak_err_m,rmse_m,std_m,mean_solve_ms
+WLS,baseline,hover,4.3491,4.8840,4.3548,0.2214,0.000
+WLS,sybil,hover,1.3966,3.4254,1.8912,1.2752,0.000
+WLS,replay,hover,3.6521,3.9516,3.6564,0.1773,0.000
+WLS,wormhole,hover,3.0045,3.9148,3.2536,1.2488,0.000
+WLS,sybil_consistent,hover,2.2468,5.8169,2.3348,0.6348,0.000
+WLS,replay_gradual,hover,1.9003,3.5159,1.9302,0.3384,0.000
+WLS,byzantine,hover,22.3852,43.5830,25.6729,12.5697,0.000
+WLS,timesync,hover,0.8614,4.2961,1.5676,1.3097,0.000
+WLS,targeted_ramp,hover,4.5909,5.1527,4.6529,0.7569,0.000
+WLS,targeted_osc,hover,4.7826,5.0985,4.7914,0.2903,0.000
+WLS,targeted_two_drone,hover,5.8299,11.9838,5.9486,1.1822,0.000
+EKF,baseline,hover,3.9599,9.0629,4.4020,1.9227,0.000
+EKF,sybil,hover,8.3422,106.4990,22.4258,20.8165,0.000
+EKF,replay,hover,2.1119,4.4528,2.2346,0.7300,0.000
+EKF,wormhole,hover,14.5360,33.2590,18.4610,11.3804,0.000
+EKF,sybil_consistent,hover,34.0938,166.4452,42.6500,25.6250,0.000
+EKF,replay_gradual,hover,4.4712,4.8273,4.4749,0.1815,0.000
+EKF,byzantine,hover,4.5170,4.9349,4.5244,0.2583,0.000
+EKF,timesync,hover,6.4890,7.2585,6.5099,0.5208,0.000
+EKF,targeted_ramp,hover,2.5378,3.2387,2.6820,0.8675,0.000
+EKF,targeted_osc,hover,5.1150,5.8659,5.1305,0.3977,0.000
+EKF,targeted_two_drone,hover,4.3868,10.4313,4.9900,2.3782,0.000
+WLS + Huber,baseline,hover,5.2694,5.3495,5.2695,0.0331,1.522
+WLS + Huber,sybil,hover,5.1117,5.2499,5.1131,0.1226,1.285
+WLS + Huber,replay,hover,5.0835,5.2449,5.0924,0.3008,1.382
+WLS + Huber,wormhole,hover,5.1064,5.2064,5.1081,0.1320,1.464
+WLS + Huber,sybil_consistent,hover,5.0970,5.1993,5.0973,0.0562,1.330
+WLS + Huber,replay_gradual,hover,5.3213,5.3801,5.3214,0.0402,1.417
+WLS + Huber,byzantine,hover,3.9900,5.2177,4.4019,1.8592,1.418
+WLS + Huber,timesync,hover,3.8770,5.3182,4.4205,2.1235,1.449
+WLS + Huber,targeted_ramp,hover,4.7470,5.2096,4.9005,1.2166,1.407
+WLS + Huber,targeted_osc,hover,5.0648,5.1825,5.0649,0.0338,1.434
+WLS + Huber,targeted_two_drone,hover,4.9520,5.1654,4.9578,0.2402,1.532
+WLS + Tukey,baseline,hover,4.7278,5.0740,4.7772,0.6853,2.235
+WLS + Tukey,sybil,hover,4.9614,5.1999,4.9636,0.1476,2.704
+WLS + Tukey,replay,hover,3.8884,5.1299,4.3773,2.0102,2.465
+WLS + Tukey,wormhole,hover,4.0009,5.1971,4.4897,2.0373,2.813
+WLS + Tukey,sybil_consistent,hover,5.0311,5.0898,5.0312,0.0261,2.490
+WLS + Tukey,replay_gradual,hover,4.9276,5.0424,4.9311,0.1860,2.587
+WLS + Tukey,byzantine,hover,3.8006,5.0942,4.3220,2.0580,2.787
+WLS + Tukey,timesync,hover,4.9658,5.0170,4.9660,0.0431,2.642
+WLS + Tukey,targeted_ramp,hover,5.0560,5.3500,5.0575,0.1240,2.041
+WLS + Tukey,targeted_osc,hover,5.0086,5.2622,5.0091,0.0714,2.151
+WLS + Tukey,targeted_two_drone,hover,5.0152,5.3628,5.0168,0.1246,1.961
+RANSAC,baseline,hover,5.3764,5.7682,5.3801,0.2014,8.060
+RANSAC,sybil,hover,5.1585,5.4534,5.1608,0.1534,7.431
+RANSAC,replay,hover,4.9996,5.4035,5.0033,0.1911,7.849
+RANSAC,wormhole,hover,5.2813,5.8141,5.2878,0.2614,7.883
+RANSAC,sybil_consistent,hover,5.2481,5.5479,5.2490,0.0992,9.027
+RANSAC,replay_gradual,hover,4.9737,5.3925,4.9766,0.1708,8.348
+RANSAC,byzantine,hover,12.2129,18.5998,13.7645,6.3487,7.652
+RANSAC,timesync,hover,4.0840,4.9692,4.1013,0.3760,8.223
+RANSAC,targeted_ramp,hover,5.0446,5.3042,5.0456,0.1023,7.438
+RANSAC,targeted_osc,hover,5.0481,5.3322,5.0486,0.0691,7.887
+RANSAC,targeted_two_drone,hover,4.9186,5.0778,4.9194,0.0884,7.490
+EKF+chi2+Huber *,baseline,hover,0.1608,0.2069,0.1620,0.0197,0.522
+EKF+chi2+Huber *,sybil,hover,0.0706,0.1738,0.0746,0.0241,0.448
+EKF+chi2+Huber *,replay,hover,0.0829,0.2646,0.1081,0.0694,0.499
+EKF+chi2+Huber *,wormhole,hover,0.1682,1.7551,0.2423,0.1744,0.647
+EKF+chi2+Huber *,sybil_consistent,hover,0.1597,0.2600,0.1647,0.0402,0.563
+EKF+chi2+Huber *,replay_gradual,hover,0.0818,0.2384,0.1045,0.0650,0.678
+EKF+chi2+Huber *,byzantine,hover,0.9480,1.7716,1.2246,0.7753,0.396
+EKF+chi2+Huber *,timesync,hover,0.1045,0.1858,0.1130,0.0429,0.508
+EKF+chi2+Huber *,targeted_ramp,hover,0.0965,0.1414,0.0979,0.0165,0.446
+EKF+chi2+Huber *,targeted_osc,hover,0.1353,0.2001,0.1408,0.0389,0.469
+EKF+chi2+Huber *,targeted_two_drone,hover,0.1053,0.1840,0.1131,0.0412,0.477

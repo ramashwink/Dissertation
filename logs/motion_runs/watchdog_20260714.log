@@ -1,0 +1,32 @@
+[11:57:04] Watchdog started. Watching logs/motion_runs/overnight_sweep_20260714_1157.log (stall threshold 480s)
+[11:57:32] STALL DETECTED (idle=29s, batch_alive=0). Restart #1/12.
+[11:57:32]   Last log lines before restart:
+[11:57:32]     
+[11:57:32]     Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+[11:57:32]     
+[11:57:32]     ERROR: Swarm is not running (px4 topics not found).
+[11:57:32]     Start it first: bash ~/Dissertation/scripts/start_swarm_motion.sh
+[11:57:32]   Killing everything...
+[11:57:37]   Booting fresh swarm...
+[11:58:54]   Swarm ready after 81s.
+[11:58:54]   Relaunching batch (resume logic will skip completed combos)...
+[11:58:54]   Batch relaunched, PID 10136.
+[11:59:29] STALL DETECTED (idle=34s, batch_alive=0). Restart #2/12.
+[11:59:29]   Last log lines before restart:
+[11:59:29]     
+[11:59:29]     Matrix  : 6 approaches × 11 attacks × 1 pattern(s) = 66 runs
+[11:59:29]     
+[11:59:29]     ERROR: Swarm is not running (px4 topics not found).
+[11:59:29]     Start it first: bash ~/Dissertation/scripts/start_swarm_motion.sh
+[11:59:29]   Killing everything...
+[11:59:34]   Booting fresh swarm...
+[12:00:51]   Swarm ready after 81s.
+[12:00:51]   Relaunching batch (resume logic will skip completed combos)...
+[12:00:51]   Batch relaunched, PID 13207.
+[12:01:15] Watchdog started. Watching logs/motion_runs/overnight_sweep_20260714_1201.log (stall threshold 480s)
+[12:16:06] Watchdog started. Watching logs/motion_runs/overnight_sweep_20260714_1216.log (stall threshold 480s)
+[14:17:00] BATCH COMPLETE detected. Watchdog exiting cleanly.
+[14:17:00] Watchdog stopped.
+[14:21:23] Watchdog started. Watching logs/motion_runs/overnight_sweep_20260714_1421.log (stall threshold 480s)
+[15:01:41] BATCH COMPLETE detected. Watchdog exiting cleanly.
+[15:01:41] Watchdog stopped.
