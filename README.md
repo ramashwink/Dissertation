@@ -216,11 +216,15 @@ cd ~/Dissertation/tools
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 cd PX4-Autopilot
 git checkout 583e1cdb47   # pinned commit used throughout this project (v1.18.0-alpha1-124-g583e1cdb47)
+git apply ~/Dissertation/config/px4_4001_gz_x500.patch
 bash ./Tools/setup/ubuntu.sh
 make px4_sitl
 ```
 
-This produces `tools/PX4-Autopilot/build/px4_sitl_default/` (the SITL binary + per-instance rootfs/parameter storage). The `4001_gz_x500` airframe file under `ROMFS/px4fmu_common/init.d/airframes/` is what bakes in the default parameters every fresh drone boots with.
+This produces `tools/PX4-Autopilot/build/px4_sitl_default/` (the SITL binary + per-instance rootfs/parameter storage). The `4001_gz_x500` airframe file under `ROMFS/px4fmu_common/init.d-posix/airframes/` is what bakes in the default parameters every fresh drone boots with — this is a plain upstream PX4 file, so **the `git apply` step above is not optional**. `tools/` is entirely gitignored (it's a 100+ GB third-party build tree), which means any hand-edit made directly inside it lives only in that one local checkout unless it's captured as a patch like this one. `config/px4_4001_gz_x500.patch` (tracked in git) carries two swarm-specific fixes on top of vanilla upstream:
+
+- **RC/failsafe param tuning** — disables RC-loss/datalink-loss/geofence/battery failsafes that would otherwise trigger on a SITL swarm with no RC input (replaces an earlier, unreliable approach of setting these over MAVLink after boot — PX4's MAVLink UDP receiver locks onto the first client per port, and QGC auto-connecting usually won that race, so the external `param set` calls likely never landed)
+- **EKF2 GPS gate relaxation** (`EKF2_GPS_P_GATE`/`EKF2_GPS_V_GATE`) — widens the innovation-test gate so transient EKF convergence spikes under swarm-boot CPU contention don't block arming with "Resolve system health failures first" (see the arming-rejected-under-load row in [Known issues](#known-issues-encountered-during-development))
 
 ### 4. Micro-XRCE-DDS-Agent + version-matched Discovery Server
 
@@ -275,7 +279,7 @@ source install/setup.bash
 |---|---|---|
 | `ros_ws/px4_ros_ws/src/swarm_msgs/`, `.../swarm_discovery/` | ✅ Yes | All project source code — this is the actual research artefact |
 | `evidence/metrics/`, `evidence/figures/` | ✅ Yes | Experiment results and generated figures — the evidence base for the dissertation |
-| `config/*.xml`, `scripts/*.sh`, `*.py` (root, `code/`) | ✅ Yes | Launch/analysis scripts and DDS profiles needed to rerun anything |
+| `config/*.xml`, `config/*.patch`, `scripts/*.sh`, `*.py` (root, `code/`) | ✅ Yes | Launch/analysis scripts, DDS profiles, and the PX4 airframe patch needed to rerun anything |
 | `tools/PX4-Autopilot/`, `tools/Micro-XRCE-DDS-Agent/`, `tools/ardupilot/` | ❌ Gitignored | Multi-GB to 100+ GB third-party build trees — clone + build per steps 3–4 above, pinned to the commits given there. `tools/ardupilot/` is vendored but currently unused by any script in this repo (no code path references it) |
 | `ros_ws/px4_ros_ws/{build,install,log}/` | ❌ Gitignored | `colcon build` output — regenerate with step 7 above |
 | `evidence/gt/` | ❌ Gitignored | Ground-truth CSVs (tens of MB) extracted straight from a live Gazebo run — regenerate per-run with `extract_ground_truth.py`, don't treat as static reference data |
@@ -572,7 +576,7 @@ These are real problems hit over the course of the project, kept here so they do
 | `pkill` killed the wrong thing | A demo/run script terminated itself mid-run | An early cleanup step matched processes by attack name substring, which also matched the launcher script's own `argv` (e.g. cleaning up a "wormhole" attack process also matched a script invoked with `wormhole` as an argument) — pattern tightened to avoid self-matching |
 | Attacks fired before dependent state existed | An attack's effect on the CSV was inconsistent run-to-run, sometimes near-zero | Wormhole/Sybil/Byzantine attack scripts originally had a short (~5 s) warmup before injecting; some runs hit a slow-converging EKF or a not-yet-populated registry. Warmup extended to ~10 s with an explicit readiness gate rather than a fixed sleep |
 | Attack CSV / drone-list mislabelling | One attack's results silently excluded `px4_5`, another's CSV header claimed the wrong drone | Wormhole attack's output CSV header was mislabelled (`px4_3` where it should have read `px4_5`); the `HONEST_DRONES` list in the Sybil/Replay attacks didn't include `px4_5` after the swarm grew from 3→5 drones. Both are drone-count/naming updates that are easy to miss when scaling up — always re-check these lists after changing drone count |
-| PX4 arming rejected under load | `/tmp/px4_N.log` shows `WARN [commander] Arming denied: Resolve system health failures first`, but no DDS/discovery problem is present | Legitimate PX4 health-check rejection (commonly EKF/sensor convergence lag) caused by resource contention — 5 SITL instances + Gazebo on one machine is heavy, and this gets worse as system load climbs. `formation_flight`'s retry loop (every 2 s, indefinitely) usually succeeds if given enough wall-clock time; there is no infra-level bypass currently baked into the airframe params |
+| PX4 arming rejected under load | `/tmp/px4_N.log` shows `WARN [commander] Arming denied: Resolve system health failures first`, but no DDS/discovery problem is present | Legitimate PX4 health-check rejection (commonly EKF/sensor convergence lag) caused by resource contention — 5 SITL instances + Gazebo on one machine is heavy, and this gets worse as system load climbs. `formation_flight`'s retry loop (every 2 s, indefinitely) usually helps if given enough wall-clock time. **Fixed at the infra level** on 2026-07-14 by widening `EKF2_GPS_P_GATE`/`EKF2_GPS_V_GATE` in the airframe params — see `config/px4_4001_gz_x500.patch`, applied per [Prerequisites §3](#3-px4-autopilot-build-from-source). This patch previously existed only as an uncommitted local edit inside the gitignored `tools/PX4-Autopilot/` checkout, invisible to anyone re-cloning the repo — it's now tracked |
 | Gazebo silent crash | No drone movement, QGC looks frozen, no obvious error | `gz sim`'s physics engine (`libdart`/`libode`) can `SIGABRT` under sustained load/collision-detection edge cases. Pre-existing Gazebo Harmonic flakiness, not caused by anything in this repo — check `/tmp/px4_1.log` (which owns the headless Gazebo process) for a crash trace; the only recovery is a full swarm restart |
 
 ---
