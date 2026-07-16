@@ -31,8 +31,6 @@ Six cooperative localisation algorithms are compared under eight attacks in a 5-
 | `MOTION_EXPERIMENT_README.md` | Deep dive on the moving-target (hover/square/circle) testbed variant |
 | `TARGETED_ATTACK_README.md` | Deep dive on the single-drone targeted Byzantine attack ("Finding F4") — maths, results, mitigations |
 | `scripts/DEMO_README.md` | Quick-reference cheat sheet for the live viva demo (`scripts/demo.sh`) |
-| `Readme_stale.md` | **Superseded** — an earlier, differently-scoped doc for the `px4-ekf2-mavlink-exploit` branch (PX4 EKF2 timestamp vulnerability). Kept for reference only, not part of the current pipeline. |
-| `scripts/MOTION_EXPERIMENT_README_stale.md` | **Superseded** — an older draft of `MOTION_EXPERIMENT_README.md` (predates the discovery-server fix and the 5-drone grid layout). Do not follow it. |
 
 ---
 
